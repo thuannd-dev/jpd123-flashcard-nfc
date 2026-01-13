@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>JPD123 Flashcard Pro</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Roboto", "sans-serif"],
+              jp: ["Noto Sans JP", "sans-serif"],
+            },
+            colors: {
+              brand: { dark: "#0f172a", card: "#1e293b", accent: "#8b5cf6" },
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .perspective-1000 {
+        perspective: 1000px;
+      }
+      .transform-style-3d {
+        transform-style: preserve-3d;
+      }
+      .backface-hidden {
+        backface-visibility: hidden;
+      }
+      .rotate-y-180 {
+        transform: rotateY(180deg);
+      }
+      .card-inner {
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .card-flip .card-inner {
+        transform: rotateY(180deg);
+      }
+      ruby {
+        display: inline-flex;
+        flex-direction: column-reverse;
+        align-items: center;
+        vertical-align: bottom;
+      }
+      rt {
+        font-size: 0.6em;
+        line-height: 1;
+        margin-bottom: 2px;
+        text-align: center;
+        user-select: none;
+      }
+      .glass {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .card-image {
+        width: 100%;
+        max-width: 100%;
+        object-fit: cover;
+        border-radius: 16px;
+        pointer-events: none;
+        margin: 0 auto;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+      .card-image-front {
+        height: 180px;
+      }
+      .card-image-back {
+        width: 70%;
+        max-width: 70%;
+        height: 90px;
+        border-radius: 12px;
+      }
+      .kanji-glow {
+        text-shadow: 0 0 20px rgba(167, 139, 250, 0.8);
+      }
+      .prose {
+        color: #cbd5e1;
+        font-size: 0.9rem;
+      }
+      .prose strong {
+        color: #a78bfa;
+        font-weight: 700;
+      }
+      .prose p {
+        margin-bottom: 0.5em;
+      }
+      /* Fix modal scrolling on mobile */
+      #modal-word .bg-slate-900 {
+        max-height: 85vh;
+      }
+    </style>
+  </head>
+
+  <body
+    class="bg-slate-900 text-white font-sans min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 selection:bg-purple-500 selection:text-white"
+  >
+    <div
+      id="global-error"
+      class="hidden fixed top-0 left-0 w-full bg-red-600 text-white p-4 z-[9999] text-center text-sm font-bold"
+    ></div>
+
+    <div
+      id="app"
+      class="max-w-md mx-auto min-h-screen relative shadow-2xl bg-black/20 flex flex-col"
+    >
+      <div
+        id="toast"
+        class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none z-50 flex items-center gap-2 text-sm border border-white/10"
+      >
+        <i class="fas fa-info-circle text-brand-accent"></i
+        ><span id="toast-msg">Thông báo</span>
+      </div>
+
+      <section
+        id="screen-login"
+        class="p-6 flex flex-col justify-center min-h-screen hidden"
+      >
+        <div class="text-center mb-8">
+          <div
+            class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-purple-500/30"
+          >
+            <span class="text-4xl font-bold text-white">JP</span>
+          </div>
+          <h1 class="text-3xl font-bold mb-2">JPD123 Pro</h1>
+          <p class="text-slate-400 text-sm">Học tiếng Nhật (AI + Excel)</p>
+        </div>
+        <form id="login-form" class="space-y-4">
+          <div>
+            <label class="text-xs text-slate-400 uppercase">Họ và tên</label
+            ><input
+              type="text"
+              id="login-name"
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 focus:border-purple-500 outline-none"
+              required
+            />
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 uppercase">Email FPT</label
+            ><input
+              type="email"
+              id="login-email"
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 focus:border-purple-500 outline-none"
+              required
+            />
+          </div>
+          <div id="class-input-group" class="hidden">
+            <label class="text-xs text-slate-400 uppercase">Mã lớp</label
+            ><input
+              type="text"
+              id="login-class"
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 focus:border-purple-500 outline-none"
+            />
+          </div>
+          <button
+            type="submit"
+            class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3 rounded-xl mt-6 flex justify-center items-center gap-2"
+          >
+            <span>Đăng Nhập</span>
+            <i id="login-spinner" class="fas fa-spinner fa-spin hidden"></i>
+          </button>
+        </form>
+      </section>
+
+      <section id="screen-dashboard" class="hidden min-h-screen pb-20">
+        <header class="p-6 pb-2 flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-bold">
+              Xin chào,
+              <span id="user-display-name" class="text-purple-400"></span>
+            </h2>
+            <p class="text-xs text-slate-400" id="user-role-display">
+              Học sinh
+            </p>
+          </div>
+          <button
+            onclick="logout()"
+            class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-slate-700 border border-slate-700"
+          >
+            <i class="fas fa-sign-out-alt text-slate-400"></i>
+          </button>
+        </header>
+
+        <div class="px-6 pb-2">
+          <div
+            class="flex items-center gap-2 text-xs text-green-400"
+            id="connection-status"
+          >
+            <span class="relative flex h-2 w-2">
+              <span
+                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
+              ></span>
+              <span
+                class="relative inline-flex rounded-full h-2 w-2 bg-green-500"
+              ></span>
+            </span>
+            Đã kết nối
+          </div>
+        </div>
+
+        <div class="p-6">
+          <h3 class="text-sm uppercase font-bold text-slate-500 mb-4">
+            Chọn bài học
+          </h3>
+          <div class="grid grid-cols-2 gap-4" id="lesson-grid"></div>
+
+          <div id="teacher-dashboard-controls" class="hidden mt-8 space-y-3">
+            <h3 class="text-sm uppercase font-bold text-slate-500 mb-4">
+              Quản lý
+            </h3>
+
+            <div class="grid grid-cols-2 gap-3">
+              <button
+                onclick="excelMgr.exportTopWords()"
+                class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col items-center hover:bg-slate-700 transition-colors"
+              >
+                <i class="fas fa-file-excel text-green-400 mb-1 text-lg"></i>
+                <span class="text-xs font-bold text-center"
+                  >Xuất Thống Kê<br />(Excel)</span
+                >
+              </button>
+
+              <button
+                onclick="document.getElementById('inp-import-excel').click()"
+                class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex flex-col items-center hover:bg-slate-700 transition-colors"
+              >
+                <i class="fas fa-file-upload text-yellow-400 mb-1 text-lg"></i>
+                <span class="text-xs font-bold text-center"
+                  >Nhập Excel<br />(Tạo bài học)</span
+                >
+              </button>
+              <input
+                type="file"
+                id="inp-import-excel"
+                accept=".xlsx, .xls"
+                class="hidden"
+                onchange="excelMgr.importExcel(this)"
+              />
+            </div>
+          </div>
+
+          <div id="student-dashboard-summary" class="hidden mt-8">
+            <h3 class="text-sm uppercase font-bold text-slate-500 mb-4">
+              Tiến độ
+            </h3>
+            <div class="glass p-4 rounded-xl">
+              <div class="flex justify-between text-sm mb-2">
+                <span class="text-slate-300">Đã thuộc</span>
+                <span class="text-green-400 font-bold" id="dash-mastered-count"
+                  >0</span
+                >
+              </div>
+              <div class="w-full bg-slate-700 rounded-full h-2.5 mb-4">
+                <div
+                  id="dash-progress-bar"
+                  class="bg-gradient-to-r from-green-400 to-emerald-500 h-2.5 rounded-full"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                <div class="bg-slate-800/50 p-2 rounded-lg">
+                  <div
+                    class="text-blue-400 font-bold text-lg"
+                    id="dash-learning"
+                  >
+                    0
+                  </div>
+                  <div>Đang học</div>
+                </div>
+                <div class="bg-slate-800/50 p-2 rounded-lg">
+                  <div
+                    class="text-orange-400 font-bold text-lg"
+                    id="dash-review"
+                  >
+                    0
+                  </div>
+                  <div>Cần ôn</div>
+                </div>
+                <div class="bg-slate-800/50 p-2 rounded-lg">
+                  <div class="text-green-400 font-bold text-lg" id="dash-done">
+                    0
+                  </div>
+                  <div>Thuộc</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="screen-teacher-manager"
+        class="hidden min-h-screen bg-slate-900"
+      >
+        <header
+          class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur border-b border-slate-800 p-4 flex items-center justify-between"
+        >
+          <button
+            onclick="app.navigateTo('dashboard')"
+            class="text-slate-400 hover:text-white"
+          >
+            <i class="fas fa-arrow-left mr-2"></i>Quay lại
+          </button>
+          <h2 class="font-bold text-lg">
+            Bài <span id="mgr-lesson-num"></span>
+          </h2>
+          <div class="flex gap-2">
+            <button
+              onclick="teacherMgr.deleteAllWords()"
+              class="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-red-500"
+              title="Xóa hết"
+            >
+              <i class="fas fa-trash-alt"></i>
+            </button>
+            <button
+              onclick="teacherMgr.showAddModal()"
+              class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-purple-500"
+            >
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </header>
+        <div class="p-4">
+          <div id="teacher-word-list" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <section
+        id="screen-student-study"
+        class="hidden h-screen flex flex-col bg-slate-900"
+      >
+        <header
+          class="p-4 flex justify-between items-center bg-slate-900 z-10 shrink-0"
+        >
+          <button
+            onclick="app.navigateTo('dashboard')"
+            class="w-8 h-8 flex items-center justify-center text-slate-400"
+          >
+            <i class="fas fa-times text-xl"></i>
+          </button>
+          <div class="font-mono text-sm text-slate-400">
+            <span id="fc-current-index">1</span> / <span id="fc-total">20</span>
+          </div>
+          <button
+            onclick="studentStudy.toggleShuffle()"
+            id="btn-shuffle"
+            class="text-slate-400 hover:text-purple-400 transition-colors"
+          >
+            <i class="fas fa-random"></i>
+          </button>
+        </header>
+        <div class="w-full bg-slate-800 h-1 shrink-0">
+          <div
+            id="fc-progress-bar"
+            class="bg-purple-500 h-1 transition-all duration-300"
+            style="width: 0%"
+          ></div>
+        </div>
+        <div
+          class="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden"
+        >
+          <div
+            class="perspective-1000 w-full h-full max-h-[550px] cursor-pointer group relative"
+            onclick="studentStudy.flipCard()"
+          >
+            <div
+              id="flashcard-inner"
+              class="card-inner w-full h-full relative transform-style-3d shadow-2xl shadow-black/50 rounded-3xl"
+            >
+              <div
+                class="absolute w-full h-full backface-hidden bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-3xl z-20 overflow-hidden flex flex-col justify-between"
+              >
+                <div class="flex justify-between p-4 shrink-0 relative z-30">
+                  <div
+                    onclick="event.stopPropagation(); studentStudy.playAudio()"
+                    class="p-2 bg-black/20 hover:bg-white/10 rounded-full transition-colors"
+                  >
+                    <i class="fas fa-volume-up text-slate-300 text-xl"></i>
+                  </div>
+                  <div
+                    onclick="event.stopPropagation(); studentStudy.toggleFav()"
+                    class="p-2 bg-black/20 hover:bg-white/10 rounded-full transition-colors"
+                  >
+                    <i
+                      id="fc-star"
+                      class="far fa-star text-yellow-500 text-xl transition-transform active:scale-125"
+                    ></i>
+                  </div>
+                </div>
+                <div
+                  class="flex-1 flex flex-col items-center justify-start w-full px-4 pt-4 relative z-20"
+                >
+                  <div
+                    id="fc-image-container-front"
+                    class="hidden mb-6 w-full px-6 flex justify-center"
+                    style="min-height: 0"
+                  >
+                    <img
+                      id="fc-image-front"
+                      src=""
+                      alt="Minh họa"
+                      class="card-image card-image-front"
+                    />
+                  </div>
+                  <div class="w-full text-center shrink-0">
+                    <h1
+                      id="fc-kanji-front"
+                      class="kanji-glow text-5xl md:text-7xl font-jp font-bold text-white tracking-wide leading-tight break-words relative z-50 drop-shadow-lg"
+                    ></h1>
+                  </div>
+                </div>
+                <div
+                  class="h-10 w-full flex items-center justify-center text-xs text-purple-300 uppercase tracking-widest font-bold animate-pulse shrink-0 bg-black/10 z-30"
+                >
+                  <span
+                    ><i class="fas fa-hand-pointer mr-1"></i> Chạm để lật</span
+                  >
+                </div>
+              </div>
+              <div
+                class="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-3xl p-4 flex flex-col z-10 overflow-hidden"
+              >
+                <div
+                  class="text-center mb-2 pb-2 border-b border-slate-700/50 mt-2 overflow-y-auto shrink-0"
+                  style="max-height: 45%"
+                >
+                  <div
+                    id="fc-image-container-back"
+                    class="hidden w-full flex justify-center items-center mb-2"
+                  >
+                    <img
+                      id="fc-image-back"
+                      src=""
+                      alt="Minh họa"
+                      class="card-image card-image-back"
+                    />
+                  </div>
+                  <div
+                    id="fc-kanji-back"
+                    class="text-3xl font-jp font-bold mb-1 text-white"
+                  ></div>
+                  <h2
+                    id="fc-meaning-vi"
+                    class="text-lg font-bold text-purple-300 mb-0 mt-1"
+                  ></h2>
+                  <p
+                    id="fc-romaji"
+                    class="text-xs text-slate-500 font-mono"
+                  ></p>
+                </div>
+                <div
+                  class="flex-1 space-y-2 overflow-y-auto pr-1 pb-4 scrollbar-hide"
+                  id="fc-examples"
+                ></div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="w-full mt-6 grid grid-cols-5 gap-2 max-w-sm mx-auto shrink-0"
+          >
+            <button
+              onclick="studentStudy.prevCard()"
+              class="bg-slate-800 h-12 rounded-full text-slate-400 hover:bg-slate-700"
+            >
+              <i class="fas fa-undo"></i>
+            </button>
+            <button
+              onclick="studentStudy.markStatus('review')"
+              class="col-span-2 bg-slate-800 h-12 rounded-full text-orange-400 font-bold border border-orange-500/30 hover:bg-orange-500/10 text-xs sm:text-sm"
+            >
+              <i class="fas fa-sync-alt mr-1"></i>Ôn lại
+            </button>
+            <button
+              onclick="studentStudy.markStatus('mastered')"
+              class="bg-green-600 h-12 rounded-full text-white shadow-lg hover:bg-green-500"
+            >
+              <i class="fas fa-check"></i>
+            </button>
+            <button
+              onclick="studentStudy.nextCard()"
+              class="bg-slate-800 h-12 rounded-full text-purple-400 hover:bg-slate-700"
+            >
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div
+        id="modal-ai"
+        class="fixed inset-0 bg-black/90 backdrop-blur-md hidden z-50 flex items-center justify-center p-4"
+      >
+        <div
+          class="bg-slate-900 w-full max-w-md rounded-2xl border border-slate-700 shadow-2xl flex flex-col max-h-[80vh]"
+        >
+          <div
+            class="p-4 border-b border-slate-800 flex justify-between items-center bg-gradient-to-r from-indigo-900/50 to-purple-900/50 rounded-t-2xl"
+          >
+            <h3 class="font-bold text-lg text-white">
+              <i class="fas fa-robot text-purple-400 mr-2"></i>AI Trợ lý
+            </h3>
+            <button
+              onclick="geminiService.closeModal()"
+              class="text-slate-400 hover:text-white"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div
+            class="p-6 overflow-y-auto flex-1 leading-relaxed space-y-2"
+            id="ai-content"
+          ></div>
+          <div class="p-4 border-t border-slate-800 text-center">
+            <button
+              onclick="geminiService.closeModal()"
+              class="bg-slate-800 text-white px-6 py-2 rounded-xl hover:bg-slate-700 w-full"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="modal-word"
+        class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4"
+      >
+        <div
+          class="bg-slate-900 w-full max-w-lg rounded-2xl border border-slate-700 max-h-[90vh] flex flex-col"
+        >
+          <div
+            class="p-4 border-b border-slate-800 flex justify-between items-center"
+          >
+            <h3 class="font-bold text-lg">Thông tin từ vựng</h3>
+            <button
+              onclick="teacherMgr.closeModal()"
+              class="text-slate-400 hover:text-white"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="p-4 overflow-y-auto space-y-4 flex-1">
+            <input type="hidden" id="word-mode" />
+            <div>
+              <label class="text-xs text-slate-500 block mb-1"
+                >ID (Tự tạo)</label
+              ><input
+                type="text"
+                id="inp-id"
+                class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm font-mono text-yellow-400"
+              />
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="text-xs text-slate-500 block mb-1">Kanji</label
+                ><input
+                  type="text"
+                  id="inp-kanji"
+                  class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 block mb-1">Hiragana</label
+                ><input
+                  type="text"
+                  id="inp-furigana"
+                  class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 block mb-1">Romaji</label
+                ><input
+                  type="text"
+                  id="inp-romaji"
+                  class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 block mb-1"
+                  >Nghĩa Việt</label
+                ><input
+                  type="text"
+                  id="inp-vi"
+                  class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+
+            <div class="border border-slate-700 p-3 rounded bg-slate-800/50">
+              <label
+                class="text-xs text-slate-400 block mb-2 font-bold uppercase"
+                >Hình ảnh minh họa</label
+              >
+              <input
+                type="file"
+                id="inp-image-file"
+                accept="image/*"
+                class="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 cursor-pointer"
+              />
+              <div id="preview-image-container" class="mt-2 hidden">
+                <img
+                  id="preview-image"
+                  src=""
+                  class="h-20 rounded object-contain border border-slate-600"
+                />
+              </div>
+              <input type="hidden" id="inp-image-base64" />
+            </div>
+
+            <div class="border-t border-slate-800 pt-3">
+              <div class="flex justify-between items-center mb-2">
+                <label class="text-xs text-slate-500 font-bold"
+                  >5 Câu Ví dụ</label
+                >
+                <button
+                  type="button"
+                  onclick="geminiService.generateExamples()"
+                  class="bg-orange-500 hover:bg-orange-600 text-white text-xs px-3 py-1 rounded shadow flex items-center gap-1 font-bold"
+                >
+                  <i class="fas fa-pencil-alt"></i> AI Tạo Ví Dụ
+                </button>
+              </div>
+              <div id="example-inputs-container" class="space-y-2"></div>
+            </div>
+          </div>
+          <div class="p-4 border-t border-slate-800 grid grid-cols-2 gap-4">
+            <button
+              onclick="teacherMgr.closeModal()"
+              class="py-2 text-slate-400 hover:text-white"
+            >
+              Hủy
+            </button>
+            <button
+              onclick="teacherMgr.saveWord()"
+              class="py-2 bg-purple-600 rounded-lg text-white font-bold"
+            >
+              Lưu
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.onerror = function (msg, url, line, col, error) {
+        const errDiv = document.getElementById("global-error");
+        if (errDiv) {
+          errDiv.classList.remove("hidden");
+          errDiv.innerHTML = `Lỗi hệ thống: ${msg} <br> (Dòng: ${line})`;
+        }
+        console.error("Global Error:", msg, error);
+        return false;
+      };
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyBtlslkylHhhhQCSL9fwxBK5QQpXwqp8rw",
+        authDomain: "jpd123-flashcard.firebaseapp.com",
+        databaseURL:
+          "https://jpd123-flashcard-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "jpd123-flashcard",
+        storageBucket: "jpd123-flashcard.firebasestorage.app",
+        messagingSenderId: "1085810162442",
+        appId: "1:1085810162442:web:c69c3bd93a219fa2a118f3",
+      };
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      const dbRef = firebase.database().ref();
+
+      // 2. API KEY (ĐÃ SỬA: KEY CỦA BẠN - VUI LÒNG TẠO LẠI TRONG DỰ ÁN MỚI NẾU VẪN LỖI)
+      let userApiKey = "";
+      const apiKey = "AIzaSyAcINfdLHlIFFObfWfRCFuDLExztlCiqpc";
+
+      const TEACHER_DOMAINS = ["@fe.edu.vn", "@fpt.com.vn"];
+      const SPECIAL_TEACHERS = [
+        "anhbpsa180223@fpt.edu.vn",
+        "oanhvttsa170012@fpt.edu.vn",
+        "thuthasa180107@fpt.edu.vn",
+        "a@fpt.edu.vn",
+      ];
+      const STUDENT_DOMAIN = "@fpt.edu.vn";
+      const LESSONS = [4, 5, 6, 7];
+
+      window.SEED_DATA = [];
+      window.db = { words: [], progress: {} };
+      window.session = {
+        user: null,
+        currentLesson: null,
+        nfcTarget: null,
+        studyList: [],
+        currentIndex: 0,
+        isShuffle: false,
+      };
+      window.__progressDocs = [];
+
+      const $ = (id) => document.getElementById(id);
+      const showScreen = (id) => {
+        document
+          .querySelectorAll('section[id^="screen-"]')
+          .forEach((el) => el.classList.add("hidden"));
+        $(id).classList.remove("hidden");
+      };
+      const showToast = (msg) => {
+        const t = $("toast");
+        $("toast-msg").innerText = msg;
+        t.classList.remove("opacity-0");
+        setTimeout(() => t.classList.add("opacity-0"), 2000);
+      };
+
+      const stripRuby = (text) => {
+        if (!text) return "";
+        return text
+          .replace(/<rt>.*?<\/rt>/g, "")
+          .replace(/<\/?ruby>/g, "")
+          .replace(/<\/?[^>]+>/g, "");
+      };
+
+      const speakJP = (text) => {
+        if (!text) return;
+        const clean = stripRuby(text);
+        const u = new SpeechSynthesisUtterance(clean);
+        u.lang = "ja-JP";
+        window.speechSynthesis.speak(u);
+      };
+      const generateRubyHtml = (k, f) =>
+        !f || k === f ? k : `<ruby>${k}<rt>${f}</rt></ruby>`;
+
+      window.logout = () => {
+        localStorage.removeItem("jpd123_user");
+        location.reload();
+      };
+
+      const compressImage = (file, callback) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            const MAX_SIZE = 800;
+            let width = img.width,
+              height = img.height;
+            if (width > height) {
+              if (width > MAX_SIZE) {
+                height *= MAX_SIZE / width;
+                width = MAX_SIZE;
+              }
+            } else {
+              if (height > MAX_SIZE) {
+                width *= MAX_SIZE / height;
+                height = MAX_SIZE;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+            callback(canvas.toDataURL("image/jpeg", 0.7));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      };
+
+      const handleImageUpload = (input) => {
+        const file = input.files[0];
+        if (!file) return;
+        compressImage(file, (base64) => {
+          $("inp-image-base64").value = base64;
+          $("preview-image").src = base64;
+          $("preview-image-container").classList.remove("hidden");
+        });
+      };
+
+      window.dataMgr = {
+        /* ... */
+      };
+
+      window.excelMgr = {
+        exportTopWords: () => {
+          const allStudents = window.__progressDocs || [];
+          const allWords = window.db.words || [];
+          if (allStudents.length === 0)
+            return showToast("Chưa có dữ liệu học sinh!");
+          const wordStats = {};
+          allStudents.forEach((student) => {
+            const progress = student.progress || {};
+            Object.keys(progress).forEach((wordId) => {
+              if (progress[wordId].status === "mastered") {
+                wordStats[wordId] = (wordStats[wordId] || 0) + 1;
+              }
+            });
+          });
+          const reportData = allWords.map((w) => {
+            return {
+              Bài: w.lesson,
+              Kanji: w.kanji,
+              Hiragana: w.furigana,
+              Nghĩa: w.vi,
+              "Số HS Thuộc": wordStats[w.id] || 0,
+            };
+          });
+          reportData.sort((a, b) => b["Số HS Thuộc"] - a["Số HS Thuộc"]);
+          const worksheet = XLSX.utils.json_to_sheet(reportData);
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Thống Kê");
+          XLSX.writeFile(workbook, "JPD123_ThongKe.xlsx");
+          showToast("Đã xuất Excel!");
+        },
+        importExcel: (input) => {
+          const file = input.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            try {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: "array" });
+              const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+              const jsonData = XLSX.utils.sheet_to_json(worksheet);
+              if (jsonData.length === 0) return alert("File Excel rỗng!");
+              if (!jsonData[0].Kanji || !jsonData[0].Lesson)
+                return alert("Excel sai mẫu (Cần cột Lesson, Kanji...)");
+              if (!confirm(`Thêm ${jsonData.length} từ mới?`)) {
+                input.value = "";
+                return;
+              }
+              showToast("Đang xử lý...");
+              let count = 0;
+              for (const row of jsonData) {
+                const safeRomaji = (row.Romaji || "word")
+                  .toString()
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]/g, "");
+                const id = `${row.Lesson}_${safeRomaji}_${Date.now()}_${count}`;
+                const newWord = {
+                  id,
+                  lesson: parseInt(row.Lesson) || 1,
+                  kanji: row.Kanji || "",
+                  furigana: row.Furigana || "",
+                  romaji: row.Romaji || "",
+                  vi: row["Nghĩa"] || "",
+                  image: "",
+                  examples: [],
+                };
+                if (row["Ví dụ Nhật"] && row["Ví dụ Việt"])
+                  newWord.examples.push({
+                    jp: row["Ví dụ Nhật"],
+                    vi: row["Ví dụ Việt"],
+                  });
+                await window.cloud.saveWord(newWord);
+                count++;
+              }
+              alert(`Đã thêm ${count} từ!`);
+              input.value = "";
+            } catch (err) {
+              console.error(err);
+              alert("Lỗi đọc file Excel!");
+              input.value = "";
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        },
+      };
+
+      // --- GEMINI SERVICE ---
+      window.geminiService = {
+        getKey: () => {
+          if (apiKey) return apiKey.trim();
+          if (userApiKey) return userApiKey.trim();
+          const i = prompt("Nhập API Key Gemini (nếu có):");
+          if (i && i.trim()) {
+            userApiKey = i.trim();
+            return userApiKey;
+          }
+          return null;
+        },
+
+        // Hàm gọi AI thông minh: Thử lần lượt các Model
+        callGemini: async (promptText) => {
+          const key = window.geminiService.getKey();
+          if (!key) throw new Error("Chưa có Key");
+
+          const models = [
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+            "gemini-1.0-pro",
+          ];
+
+          for (const model of models) {
+            try {
+              const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    contents: [{ parts: [{ text: promptText }] }],
+                  }),
+                }
+              );
+              const data = await res.json();
+
+              if (res.ok) {
+                return (data.candidates?.[0]?.content?.parts || [])
+                  .map((p) => p.text)
+                  .join("")
+                  .trim();
+              }
+
+              if (data.error && data.error.code === 404) {
+                console.warn(
+                  `Model ${model} không dùng được, đang thử cái khác...`
+                );
+                continue;
+              }
+              throw new Error(data.error?.message || "Lỗi không xác định");
+            } catch (e) {
+              if (models.indexOf(model) === models.length - 1) throw e;
+            }
+          }
+          throw new Error(
+            "Tất cả Model đều lỗi! Vui lòng tạo Key mới ở 'Default Gemini Project' thay vì 'jpd123'."
+          );
+        },
+
+        // Tự động tạo ví dụ
+        generateExamples: async () => {
+          const k = $("inp-kanji").value || "";
+          const m = $("inp-vi").value || "";
+          if (!k.trim()) return alert("Vui lòng nhập Kanji trước!");
+
+          showToast("Đang tạo ví dụ...");
+          try {
+            const promptText = `Generate 5 simple Japanese example sentences for "${k}" (Meaning: ${m}). Return JSON array: [{"jp":"sentence with ruby","vi":"meaning"}]. RULES: Wrap Kanji with <ruby>Kanji<rt>kana</rt></ruby>.`;
+            let raw = await window.geminiService.callGemini(promptText);
+
+            const jsonMatch = raw.match(/\[[\s\S]*\]/);
+            const jsonStr = jsonMatch ? jsonMatch[0] : raw;
+            const json = JSON.parse(jsonStr);
+
+            window.teacherMgr.renderExampleInputs(json);
+          } catch (e) {
+            alert("Lỗi tạo ví dụ: " + e.message);
+          }
+        },
+
+        // AI Thêm Furigana + Dịch
+        enrichExample: async (index) => {
+          const jpInput = $(`inp-ex-jp-${index}`);
+          const viInput = $(`inp-ex-vi-${index}`);
+          const btn = $(`btn-ai-ex-${index}`);
+          if (!jpInput || !viInput) return;
+          const sentence = jpInput.value.trim();
+          if (!sentence) return alert("Vui lòng nhập câu Nhật trước.");
+
+          if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ...`;
+          }
+
+          try {
+            const promptText = `You are a Japanese teacher. I will give you ONE sentence. 
+                    1. Add furigana to all Kanji using ruby tags (<ruby>Kanji<rt>hiragana</rt></ruby>). 
+                    2. Translate to Vietnamese.
+                    Return JSON: {"jp":"...", "vi":"..."}. Sentence: ${sentence}`;
+
+            let rawText = await window.geminiService.callGemini(promptText);
+
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            const jsonStr = jsonMatch ? jsonMatch[0] : rawText;
+            const obj = JSON.parse(jsonStr);
+
+            if (obj.jp) jpInput.value = obj.jp;
+            if (obj.vi) viInput.value = obj.vi;
+          } catch (e) {
+            alert("Lỗi AI: " + e.message);
+          } finally {
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = `<i class="fas fa-wand-magic-sparkles"></i> AI Furigana + Dịch`;
+            }
+          }
+        },
+        closeModal: () => $("modal-ai").classList.add("hidden"),
+      };
+
+      window.loadData = () => {
+        $("connection-status").innerHTML =
+          '<span class="animate-pulse text-green-400">●</span> Online Mode';
+        dbRef.child("words").on("value", (snapshot) => {
+          const data = snapshot.val();
+          window.db.words = data ? Object.values(data) : [];
+          if (window.handleVocabUpdate) window.handleVocabUpdate();
+        });
+        dbRef.child("progress_all").on("value", (snapshot) => {
+          const data = snapshot.val();
+          window.__progressDocs = data ? Object.values(data) : [];
+        });
+        const u = localStorage.getItem("jpd123_user");
+        if (u) {
+          const user = JSON.parse(u);
+          const safeEmail = user.email.replace(/\./g, ",");
+          dbRef
+            .child("progress_detail/" + safeEmail)
+            .on("value", (snapshot) => {
+              window.db.progress = { [user.email]: snapshot.val() || {} };
+              if (window.session.user?.role === "student")
+                app.renderStudentDashboardStats();
+            });
+        }
+      };
+
+      window.cloud = {
+        saveWord: async (word) => {
+          try {
+            await dbRef.child("words/" + word.id).set(word);
+            return true;
+          } catch (e) {
+            alert("Lỗi lưu: " + e.message);
+            return false;
+          }
+        },
+        deleteWord: async (id) => {
+          try {
+            await dbRef.child("words/" + id).remove();
+            return true;
+          } catch (e) {
+            alert("Lỗi xóa: " + e.message);
+            return false;
+          }
+        },
+      };
+
+      window.progressCloud = {
+        saveStudentProgress: async (student) => {
+          const safeEmail = student.email.replace(/\./g, ",");
+          await dbRef.child("progress_all/" + safeEmail).set(student);
+          await dbRef
+            .child("progress_detail/" + safeEmail)
+            .set(student.progress);
+          return true;
+        },
+      };
+
+      window.app = {
+        init: () => {
+          window.loadData();
+          const p = new URLSearchParams(location.search);
+          if (p.get("lesson") && p.get("id"))
+            window.session.nfcTarget = {
+              lesson: parseInt(p.get("lesson")),
+              id: p.get("id"),
+            };
+
+          const u = localStorage.getItem("jpd123_user");
+          if (u) {
+            window.session.user = JSON.parse(u);
+            window.app.checkRedirect();
+          } else if (window.session.nfcTarget) {
+            // Auto-create guest user when NFC scan detected
+            window.session.user = {
+              name: "Guest",
+              email: "guest@nfc.temp",
+              role: "student",
+              className: "",
+            };
+            window.app.checkRedirect();
+          } else {
+            showScreen("screen-login");
+            $("login-email").oninput = (e) => {
+              const val = e.target.value;
+              const isTeacher =
+                SPECIAL_TEACHERS.includes(val) ||
+                TEACHER_DOMAINS.some((d) => val.endsWith(d));
+              $("class-input-group").classList.toggle("hidden", isTeacher);
+            };
+          }
+
+          $("login-form").onsubmit = (e) => {
+            e.preventDefault();
+            $("login-spinner").classList.remove("hidden");
+            setTimeout(() => {
+              const eVal = $("login-email").value.toLowerCase();
+              const role =
+                SPECIAL_TEACHERS.includes(eVal) ||
+                TEACHER_DOMAINS.some((d) => eVal.endsWith(d))
+                  ? "teacher"
+                  : eVal.endsWith(STUDENT_DOMAIN)
+                  ? "student"
+                  : null;
+              if (!role) {
+                $("login-spinner").classList.add("hidden");
+                return alert("Email không hợp lệ!");
+              }
+              window.session.user = {
+                name: $("login-name").value,
+                email: eVal,
+                role,
+                className: $("login-class").value || "",
+              };
+              localStorage.setItem(
+                "jpd123_user",
+                JSON.stringify(window.session.user)
+              );
+              window.app.checkRedirect();
+            }, 400);
+          };
+          $("inp-image-file").addEventListener("change", function () {
+            handleImageUpload(this);
+          });
+        },
+        checkRedirect: () => {
+          // FIX: Quét NFC -> Nạp toàn bộ từ của bài học đó -> Nhảy đến từ được quét
+          if (window.session.nfcTarget) {
+            if (window.db.words.length === 0) {
+              setTimeout(window.app.checkRedirect, 500);
+              return;
+            }
+
+            // Lọc tất cả các từ trong bài học đó
+            const wordsInLesson = window.db.words.filter(
+              (x) => x.lesson === window.session.nfcTarget.lesson
+            );
+
+            // Tìm từ cụ thể được quét
+            const targetWord = wordsInLesson.find(
+              (x) => x.id === window.session.nfcTarget.id
+            );
+
+            if (targetWord) {
+              window.session.currentLesson = window.session.nfcTarget.lesson;
+              // Init với toàn bộ danh sách từ, nhưng ID target là từ vừa quét
+              window.studentStudy.init(wordsInLesson, targetWord.id);
+              showScreen("screen-student-study");
+              window.session.nfcTarget = null;
+              return;
+            }
+          }
+          window.app.initDashboard();
+        },
+        initDashboard: () => {
+          $("user-display-name").innerText = window.session.user.name;
+          $("user-role-display").innerText =
+            window.session.user.role === "teacher"
+              ? "Giáo viên (Online)"
+              : `Học sinh - ${window.session.user.className || "N/A"}`;
+          $("lesson-grid").innerHTML = LESSONS.map(
+            (n) =>
+              `<div onclick="window.app.selectLesson(${n})" class="bg-slate-800 border border-slate-700 p-4 rounded-2xl flex flex-col items-center justify-center aspect-square hover:bg-slate-700 cursor-pointer active:scale-95"><div class="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-xl font-bold shadow-lg mb-2">${n}</div><span class="font-bold text-slate-300">Bài ${n}</span></div>`
+          ).join("");
+          if (window.session.user.role === "teacher") {
+            $("teacher-dashboard-controls").classList.remove("hidden");
+            $("student-dashboard-summary").classList.add("hidden");
+          } else {
+            $("teacher-dashboard-controls").classList.add("hidden");
+            $("student-dashboard-summary").classList.remove("hidden");
+            window.app.renderStudentDashboardStats();
+          }
+          showScreen("screen-dashboard");
+        },
+        renderStudentDashboardStats: () => {
+          let s = { l: 0, r: 0, m: 0 };
+          const email = window.session.user.email;
+          if (window.db.progress[email]) {
+            Object.values(window.db.progress[email]).forEach((i) => {
+              if (i.status === "mastered") s.m++;
+              else if (i.status === "review") s.r++;
+              else s.l++;
+            });
+          }
+          $("dash-learning").innerText = s.l;
+          $("dash-review").innerText = s.r;
+          $("dash-done").innerText = s.m;
+          const totalWords = window.db.words.length || 1;
+          $("dash-mastered-count").innerText = `${s.m}/${totalWords}`;
+          $("dash-progress-bar").style.width = `${(s.m / totalWords) * 100}%`;
+        },
+        selectLesson: (n, tid) => {
+          window.session.currentLesson = n;
+          const w = window.db.words.filter((x) => x.lesson === n);
+          if (window.session.user.role === "teacher") {
+            window.teacherMgr.init(n, w);
+            showScreen("screen-teacher-manager");
+          } else {
+            if (!w.length) return showToast("Bài này chưa có từ vựng!");
+            window.studentStudy.init(w, tid);
+            showScreen("screen-student-study");
+          }
+        },
+        navigateTo: (s) => {
+          if (s === "dashboard") window.app.initDashboard();
+          else showScreen("screen-" + s);
+        },
+      };
+
+      // --- TEACHER MANAGER ---
+      window.teacherMgr = {
+        currentWords: [],
+        init: (l, w) => {
+          window.teacherMgr.currentWords = w;
+          $("mgr-lesson-num").innerText = l;
+          window.teacherMgr.renderList();
+        },
+
+        renderList: () => {
+          const listEl = $("teacher-word-list");
+          const baseUrl = location.origin + location.pathname;
+          listEl.parentElement.classList.add("pb-40");
+
+          listEl.innerHTML = window.teacherMgr.currentWords
+            .map((w) => {
+              const link = `${baseUrl}?lesson=${w.lesson}&id=${w.id}`;
+              const safeId = String(w.id)
+                .replace(/'/g, "\\'")
+                .replace(/"/g, "&quot;");
+
+              return `
+                    <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-3 flex justify-between items-center mb-3">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            ${
+                              w.image
+                                ? `<img src="${w.image}" class="w-10 h-10 rounded object-cover bg-slate-900 shrink-0">`
+                                : '<div class="w-10 h-10 rounded bg-slate-700 flex items-center justify-center text-xs text-slate-500 shrink-0">No img</div>'
+                            }
+                            <div class="min-w-0">
+                                <div class="font-bold text-lg font-jp truncate text-white">${
+                                  w.kanji
+                                }</div>
+                                <div class="text-xs text-slate-400 truncate">${
+                                  w.vi
+                                }</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 shrink-0">
+                            <button onclick="window.teacherMgr.copyLink('${link}')" class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center hover:bg-slate-600"><i class="fas fa-link text-sm text-slate-300"></i></button>
+                            <button onclick="window.teacherMgr.editWord('${safeId}')" class="w-10 h-10 rounded-full bg-blue-900/40 text-blue-400 flex items-center justify-center hover:bg-blue-900/60 border border-blue-500/30"><i class="fas fa-pen text-sm"></i></button>
+                            <button onclick="window.teacherMgr.deleteWord('${safeId}')" class="w-10 h-10 rounded-full bg-red-900/40 text-red-400 flex items-center justify-center hover:bg-red-900/60 border border-red-500/30"><i class="fas fa-trash text-sm"></i></button>
+                        </div>
+                    </div>`;
+            })
+            .join("");
+        },
+
+        copyLink: (u) => {
+          if (navigator.clipboard)
+            navigator.clipboard
+              .writeText(u)
+              .then(() => showToast("Đã copy link!"))
+              .catch(() => prompt("Copy:", u));
+          else prompt("Copy:", u);
+        },
+
+        showAddModal: () => {
+          $("word-mode").value = "add";
+          $("inp-id").value = Date.now(); // Tự sinh ID số
+          $("inp-id").disabled = false;
+          [
+            "inp-kanji",
+            "inp-furigana",
+            "inp-romaji",
+            "inp-vi",
+            "inp-image-base64",
+          ].forEach((id) => ($(id).value = ""));
+          $("inp-image-file").value = "";
+          $("preview-image-container").classList.add("hidden");
+          window.teacherMgr.renderExampleInputs();
+          $("modal-word").classList.remove("hidden");
+        },
+
+        editWord: (id) => {
+          const w = window.db.words.find((i) => String(i.id) === String(id));
+          if (!w) return alert("Không tìm thấy từ này.");
+
+          $("word-mode").value = "edit";
+          $("inp-id").value = w.id;
+          $("inp-id").disabled = true;
+
+          $("inp-kanji").value = w.kanji || "";
+          $("inp-furigana").value = w.furigana || "";
+          $("inp-romaji").value = w.romaji || "";
+          $("inp-vi").value = w.vi || "";
+          $("inp-image-base64").value = w.image || "";
+
+          if (w.image) {
+            $("preview-image").src = w.image;
+            $("preview-image-container").classList.remove("hidden");
+          } else {
+            $("preview-image-container").classList.add("hidden");
+          }
+          window.teacherMgr.renderExampleInputs(w.examples || []);
+          $("modal-word").classList.remove("hidden");
+        },
+
+        renderExampleInputs: (examples = []) => {
+          const container = $("example-inputs-container");
+          container.innerHTML = "";
+          for (let i = 0; i < 5; i++) {
+            const ex = examples[i] || {};
+            const jpVal = (ex.jp || "").replace(/"/g, "&quot;");
+            const viVal = (ex.vi || "").replace(/"/g, "&quot;");
+
+            container.innerHTML += `
+                    <div class="bg-slate-800/50 p-2 rounded-lg border border-slate-700/50 space-y-2 mb-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input id="inp-ex-jp-${i}" value="${jpVal}" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-2 text-sm font-jp focus:border-purple-500 outline-none" placeholder="Câu Nhật (gõ tay hoặc để AI tạo)">
+                            <input id="inp-ex-vi-${i}" value="${viVal}" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-2 text-sm focus:border-purple-500 outline-none" placeholder="Nghĩa Việt">
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="button" id="btn-ai-ex-${i}" onclick="geminiService.enrichExample(${i})" 
+                                class="text-[10px] bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded border border-slate-600 flex items-center gap-1 transition-colors">
+                                <i class="fas fa-wand-magic-sparkles"></i> AI Furigana + Dịch
+                            </button>
+                        </div>
+                    </div>`;
+          }
+        },
+
+        saveWord: async () => {
+          const id = $("inp-id").value.trim();
+          if (!id) return alert("Thiếu ID!");
+          const nw = {
+            id,
+            lesson: Number(window.session.currentLesson),
+            kanji: $("inp-kanji").value,
+            furigana: $("inp-furigana").value,
+            romaji: $("inp-romaji").value,
+            vi: $("inp-vi").value,
+            image: $("inp-image-base64").value,
+            examples: [],
+          };
+          for (let i = 0; i < 5; i++) {
+            const j = $(`inp-ex-jp-${i}`).value;
+            const v = $(`inp-ex-vi-${i}`).value;
+            if (j || v) nw.examples.push({ jp: j, vi: v });
+          }
+          showToast("Đang lưu...");
+          const success = await window.cloud.saveWord(nw);
+          if (success) {
+            showToast("Đã lưu!");
+            window.teacherMgr.closeModal();
+          }
+        },
+
+        closeModal: () => $("modal-word").classList.add("hidden"),
+
+        deleteWord: async (id) => {
+          if (confirm("Xóa từ này vĩnh viễn?"))
+            await window.cloud.deleteWord(id);
+        },
+
+        deleteAllWords: async () => {
+          const lesson = window.session.currentLesson;
+          const words = window.teacherMgr.currentWords;
+          if (!words || words.length === 0)
+            return alert("Bài này chưa có từ nào để xóa!");
+
+          const userConfirm = prompt(
+            `CẢNH BÁO NGUY HIỂM:\nBạn sắp xóa TOÀN BỘ ${words.length} từ của Bài ${lesson}.\nHành động này không thể hoàn tác.\n\nVui lòng nhập chữ "DELETE" (viết hoa) để xác nhận:`
+          );
+
+          if (userConfirm !== "DELETE") {
+            return alert("Hủy xóa. Mã xác nhận không đúng.");
+          }
+
+          if (!confirm("Hỏi lại lần cuối: Chắc chắn xóa sạch chứ?")) return;
+
+          showToast(`Đang xóa ${words.length} từ...`);
+          try {
+            await Promise.all(words.map((w) => window.cloud.deleteWord(w.id)));
+            showToast("Đã xóa sạch sẽ!");
+          } catch (e) {
+            alert("Có lỗi xảy ra khi xóa: " + e.message);
+          }
+        },
+      };
+
+      window.studentStudy = {
+        init: (w, tid) => {
+          window.session.studyList = [...w];
+          window.session.currentIndex = tid
+            ? Math.max(
+                0,
+                window.session.studyList.findIndex((x) => x.id === tid)
+              )
+            : 0;
+          window.studentStudy.render();
+        },
+        render: () => {
+          const w = window.session.studyList[window.session.currentIndex];
+          if (!w) return;
+          $("fc-current-index").innerText = window.session.currentIndex + 1;
+          $("fc-total").innerText = window.session.studyList.length;
+          $("fc-progress-bar").style.width = `${
+            ((window.session.currentIndex + 1) /
+              window.session.studyList.length) *
+            100
+          }%`;
+          $("flashcard-inner").parentElement.classList.remove("card-flip");
+          $("fc-kanji-front").innerText = w.kanji;
+          if (w.image) {
+            $("fc-image-front").src = w.image;
+            $("fc-image-container-front").classList.remove("hidden");
+          } else $("fc-image-container-front").classList.add("hidden");
+          $("fc-kanji-back").innerHTML = generateRubyHtml(w.kanji, w.furigana);
+          $("fc-meaning-vi").innerText = w.vi;
+          $("fc-romaji").innerText = w.romaji || "";
+          if (w.image) {
+            $("fc-image-back").src = w.image;
+            $("fc-image-container-back").classList.remove("hidden");
+          } else $("fc-image-container-back").classList.add("hidden");
+          $("fc-examples").innerHTML = (w.examples || [])
+            .map(
+              (e) =>
+                `<div class="bg-black/20 p-2 rounded-lg border border-white/5"><div class="flex justify-between mb-1"><span class="text-blue-300 font-jp">${
+                  e.jp
+                }</span><i onclick="event.stopPropagation(); speakJP('${e.jp.replace(
+                  /'/g,
+                  "\\'"
+                )}')" class="fas fa-volume-up text-slate-500 cursor-pointer"></i></div><div class="text-xs text-slate-300">${
+                  e.vi
+                }</div></div>`
+            )
+            .join("");
+        },
+        flipCard: () => {
+          const c = $("flashcard-inner").parentElement;
+          c.classList.toggle("card-flip");
+          if (c.classList.contains("card-flip")) {
+            const w = window.session.studyList[window.session.currentIndex];
+            speakJP(w.furigana || w.kanji);
+          }
+        },
+        prevCard: () => {
+          if (window.session.currentIndex > 0) {
+            window.session.currentIndex--;
+            window.studentStudy.render();
+          }
+        },
+        nextCard: () => {
+          if (
+            window.session.currentIndex <
+            window.session.studyList.length - 1
+          ) {
+            window.session.currentIndex++;
+            window.studentStudy.render();
+          } else showToast("Đã hết thẻ!");
+        },
+        markStatus: (s) => {
+          const w = window.session.studyList[window.session.currentIndex];
+          const email = window.session.user.email;
+
+          // Skip saving progress for guest users
+          if (email === "guest@nfc.temp") {
+            showToast("Chế độ xem - không lưu tiến độ");
+            setTimeout(() => {
+              if (
+                window.session.currentIndex <
+                window.session.studyList.length - 1
+              ) {
+                window.session.currentIndex++;
+                window.studentStudy.render();
+              }
+            }, 300);
+            return;
+          }
+
+          if (!window.db.progress[email]) window.db.progress[email] = {};
+          window.db.progress[email][w.id] = {
+            status: s,
+            lastReviewed: Date.now(),
+          };
+          window.progressCloud.saveStudentProgress({
+            email: window.session.user.email,
+            name: window.session.user.name,
+            className: window.session.user.className || "",
+            progress: window.db.progress[email],
+          });
+          showToast("Đã lưu tiến độ!");
+          setTimeout(() => {
+            if (
+              window.session.currentIndex <
+              window.session.studyList.length - 1
+            ) {
+              window.session.currentIndex++;
+              window.studentStudy.render();
+            }
+          }, 300);
+        },
+        toggleShuffle: () => {
+          window.session.isShuffle = !window.session.isShuffle;
+          $("btn-shuffle").classList.toggle(
+            "text-purple-400",
+            window.session.isShuffle
+          );
+          if (window.session.isShuffle)
+            window.session.studyList.sort(() => Math.random() - 0.5);
+          else
+            window.session.studyList = window.db.words.filter(
+              (w) => w.lesson === window.session.currentLesson
+            );
+          window.session.currentIndex = 0;
+          window.studentStudy.render();
+        },
+        playAudio: () => {
+          const w = window.session.studyList[window.session.currentIndex];
+          speakJP(w.furigana || w.kanji);
+        },
+        toggleFav: () => {
+          const i = $("fc-star");
+          i.classList.toggle("fas");
+          i.classList.toggle("far");
+        },
+      };
+
+      window.handleVocabUpdate = () => {
+        if (window.session.user?.role === "teacher") {
+          const scrMgr = $("screen-teacher-manager");
+          if (scrMgr && !scrMgr.classList.contains("hidden")) {
+            const currentLesson = window.session.currentLesson;
+            window.teacherMgr.currentWords = currentLesson
+              ? window.db.words.filter((w) => w.lesson === currentLesson)
+              : window.db.words;
+            window.teacherMgr.renderList();
+          }
+        }
+        if (window.session.user?.role === "student") {
+          const scrStudy = $("screen-student-study");
+          if (scrStudy && !scrStudy.classList.contains("hidden")) {
+            const lesson = window.session.currentLesson;
+            if (!lesson) return;
+            const wordsForLesson = window.db.words.filter(
+              (w) => w.lesson === lesson
+            );
+            const currentId =
+              window.session.studyList[window.session.currentIndex]?.id;
+            window.session.studyList = [...wordsForLesson];
+            let newIndex = 0;
+            if (currentId) {
+              const idx = wordsForLesson.findIndex((w) => w.id === currentId);
+              if (idx !== -1) newIndex = idx;
+            }
+            window.session.currentIndex = newIndex;
+            window.studentStudy.render();
+          }
+        }
+      };
+
+      window.onload = window.app.init;
+    </script>
+  </body>
+</html>
