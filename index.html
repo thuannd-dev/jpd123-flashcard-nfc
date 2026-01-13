@@ -1220,12 +1220,11 @@
           else showScreen("screen-" + s);
         },
         exitStudyMode: () => {
-          // Nếu người dùng là guest (vào qua NFC), logout và về trang login
           if (
             window.session.user &&
             window.session.user.email === "guest@nfc.temp"
           ) {
-            logout();
+            window.app.navigateTo("dashboard");
           } else {
             // Người dùng thường thì quay về dashboard
             window.app.navigateTo("dashboard");
