@@ -362,7 +362,7 @@
           class="p-4 flex justify-between items-center bg-slate-900 z-10 shrink-0"
         >
           <button
-            onclick="app.navigateTo('dashboard')"
+            onclick="app.exitStudyMode()"
             class="w-8 h-8 flex items-center justify-center text-slate-400"
           >
             <i class="fas fa-times text-xl"></i>
@@ -1218,6 +1218,18 @@
         navigateTo: (s) => {
           if (s === "dashboard") window.app.initDashboard();
           else showScreen("screen-" + s);
+        },
+        exitStudyMode: () => {
+          // Nếu người dùng là guest (vào qua NFC), logout và về trang login
+          if (
+            window.session.user &&
+            window.session.user.email === "guest@nfc.temp"
+          ) {
+            logout();
+          } else {
+            // Người dùng thường thì quay về dashboard
+            window.app.navigateTo("dashboard");
+          }
         },
       };
 
