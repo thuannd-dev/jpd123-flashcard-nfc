@@ -756,6 +756,12 @@
 
       window.logout = () => {
         localStorage.removeItem("jpd123_user");
+        // Xóa URL params để tránh tự động tạo guest lại
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
         location.reload();
       };
 
