@@ -248,6 +248,14 @@
               <span>Quản lý từ vựng</span>
             </button>
 
+            <button
+              onclick="window.app.openClassManagement()"
+              class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 hover:from-emerald-700 hover:to-teal-700 active:scale-95 transition-all mb-3"
+            >
+              <i class="fas fa-users"></i>
+              <span>Quản lý lớp học</span>
+            </button>
+
             <div class="grid grid-cols-2 gap-3">
               <button
                 onclick="excelMgr.exportTopWords()"
@@ -546,6 +554,80 @@
             >
               <i class="fas fa-chevron-right"></i>
             </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Class Management Screen -->
+      <section
+        id="screen-class-management"
+        class="hidden min-h-screen bg-slate-900"
+      >
+        <header
+          class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur border-b border-slate-800 p-4 flex items-center justify-between"
+        >
+          <button
+            onclick="app.navigateTo('dashboard')"
+            class="text-slate-400 hover:text-white"
+          >
+            <i class="fas fa-arrow-left mr-2"></i>Quay lại
+          </button>
+          <h2 class="font-bold text-lg">Quản lý lớp học</h2>
+          <div class="w-8"></div>
+        </header>
+
+        <div class="p-4 space-y-4">
+          <!-- Summary Stats -->
+          <div class="grid grid-cols-3 gap-3">
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+              <div class="text-blue-400 text-2xl font-bold" id="total-students">
+                0
+              </div>
+              <div class="text-slate-400 text-xs">Học sinh</div>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+              <div
+                class="text-green-400 text-2xl font-bold"
+                id="total-words-count"
+              >
+                0
+              </div>
+              <div class="text-slate-400 text-xs">Từ vựng</div>
+            </div>
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+              <div class="text-purple-400 text-2xl font-bold" id="avg-mastery">
+                0%
+              </div>
+              <div class="text-slate-400 text-xs">TB Đã thuộc</div>
+            </div>
+          </div>
+
+          <!-- Tab Navigation -->
+          <div class="flex gap-2 border-b border-slate-800">
+            <button
+              onclick="window.classMgr.switchTab('students')"
+              id="tab-students"
+              class="px-4 py-2 font-bold border-b-2 border-purple-500 text-purple-400"
+            >
+              Theo học sinh
+            </button>
+            <button
+              onclick="window.classMgr.switchTab('words')"
+              id="tab-words"
+              class="px-4 py-2 font-bold border-b-2 border-transparent text-slate-400 hover:text-white"
+            >
+              Theo từ vựng
+            </button>
+          </div>
+
+          <!-- Students View -->
+          <div id="view-students" class="space-y-3">
+            <!-- Dynamic content -->
+          </div>
+
+          <!-- Words View -->
+          <div id="view-words" class="hidden space-y-3">
+            <!-- Dynamic content -->
           </div>
         </div>
       </section>
@@ -1307,6 +1389,10 @@
           window.teacherMgr.init(null, window.db.words);
           showScreen("screen-teacher-manager");
         },
+        openClassManagement: () => {
+          window.classMgr.init();
+          showScreen("screen-class-management");
+        },
         selectLesson: (n, tid) => {
           window.session.currentLesson = n;
           const w = window.db.words.filter((x) => x.lesson === n);
@@ -1708,6 +1794,228 @@
             window.studentStudy.render();
           }
         }
+      };
+
+      // --- CLASS MANAGEMENT ---
+      window.classMgr = {
+        currentTab: "students",
+
+        init: () => {
+          window.classMgr.calculateStats();
+          window.classMgr.renderStudentView();
+        },
+
+        calculateStats: () => {
+          const students = window.__progressDocs || [];
+          const totalWords = window.db.words.length;
+
+          $("total-students").innerText = students.length;
+          $("total-words-count").innerText = totalWords;
+
+          if (students.length > 0 && totalWords > 0) {
+            const totalMastered = students.reduce((sum, s) => {
+              const mastered = Object.values(s.progress || {}).filter(
+                (p) => p.status === "mastered",
+              ).length;
+              return sum + mastered;
+            }, 0);
+            const avgMastery = (
+              (totalMastered / (students.length * totalWords)) *
+              100
+            ).toFixed(1);
+            $("avg-mastery").innerText = avgMastery + "%";
+          } else {
+            $("avg-mastery").innerText = "0%";
+          }
+        },
+
+        switchTab: (tab) => {
+          window.classMgr.currentTab = tab;
+
+          // Update tab styles
+          $("tab-students").className =
+            tab === "students"
+              ? "px-4 py-2 font-bold border-b-2 border-purple-500 text-purple-400"
+              : "px-4 py-2 font-bold border-b-2 border-transparent text-slate-400 hover:text-white";
+          $("tab-words").className =
+            tab === "words"
+              ? "px-4 py-2 font-bold border-b-2 border-purple-500 text-purple-400"
+              : "px-4 py-2 font-bold border-b-2 border-transparent text-slate-400 hover:text-white";
+
+          // Show/hide views
+          if (tab === "students") {
+            $("view-students").classList.remove("hidden");
+            $("view-words").classList.add("hidden");
+            window.classMgr.renderStudentView();
+          } else {
+            $("view-students").classList.add("hidden");
+            $("view-words").classList.remove("hidden");
+            window.classMgr.renderWordView();
+          }
+        },
+
+        renderStudentView: () => {
+          const students = window.__progressDocs || [];
+          const totalWords = window.db.words.length;
+
+          if (students.length === 0) {
+            $("view-students").innerHTML = `
+              <div class="text-center py-8 text-slate-400">
+                <i class="fas fa-users text-6xl mb-4 opacity-50"></i>
+                <p>Chưa có học sinh nào</p>
+              </div>
+            `;
+            return;
+          }
+
+          $("view-students").innerHTML = students
+            .map((s) => {
+              const progress = s.progress || {};
+              const mastered = Object.values(progress).filter(
+                (p) => p.status === "mastered",
+              ).length;
+              const review = Object.values(progress).filter(
+                (p) => p.status === "review",
+              ).length;
+              const learning = Object.values(progress).filter(
+                (p) => p.status === "learning",
+              ).length;
+              const studied = Object.keys(progress).length;
+              const masteredPercent =
+                totalWords > 0 ? ((mastered / totalWords) * 100).toFixed(1) : 0;
+
+              return `
+              <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <div class="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 class="font-bold text-white">${s.name || "Unknown"}</h3>
+                    <p class="text-xs text-slate-400">${s.email || ""}</p>
+                    <p class="text-xs text-slate-500">${s.className || "N/A"}</p>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-2xl font-bold text-green-400">${masteredPercent}%</div>
+                    <div class="text-xs text-slate-400">Đã thuộc</div>
+                  </div>
+                </div>
+                
+                <div class="w-full bg-slate-700 rounded-full h-2 mb-3">
+                  <div class="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full" style="width: ${masteredPercent}%"></div>
+                </div>
+                
+                <div class="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div class="bg-slate-900/50 p-2 rounded">
+                    <div class="text-slate-300 font-bold">${studied}</div>
+                    <div class="text-slate-500">Đã học</div>
+                  </div>
+                  <div class="bg-slate-900/50 p-2 rounded">
+                    <div class="text-blue-400 font-bold">${learning}</div>
+                    <div class="text-slate-500">Đang học</div>
+                  </div>
+                  <div class="bg-slate-900/50 p-2 rounded">
+                    <div class="text-orange-400 font-bold">${review}</div>
+                    <div class="text-slate-500">Cần ôn</div>
+                  </div>
+                  <div class="bg-slate-900/50 p-2 rounded">
+                    <div class="text-green-400 font-bold">${mastered}</div>
+                    <div class="text-slate-500">Thuộc</div>
+                  </div>
+                </div>
+              </div>
+            `;
+            })
+            .join("");
+        },
+
+        renderWordView: () => {
+          const students = window.__progressDocs || [];
+          const words = window.db.words;
+
+          if (words.length === 0) {
+            $("view-words").innerHTML = `
+              <div class="text-center py-8 text-slate-400">
+                <i class="fas fa-book text-6xl mb-4 opacity-50"></i>
+                <p>Chưa có từ vựng nào</p>
+              </div>
+            `;
+            return;
+          }
+
+          const wordStats = words.map((w) => {
+            let masteredCount = 0;
+            let reviewCount = 0;
+            let learningCount = 0;
+
+            students.forEach((s) => {
+              const progress = s.progress || {};
+              if (progress[w.id]) {
+                if (progress[w.id].status === "mastered") masteredCount++;
+                else if (progress[w.id].status === "review") reviewCount++;
+                else if (progress[w.id].status === "learning") learningCount++;
+              }
+            });
+
+            const totalStudents = students.length;
+            const masteredPercent =
+              totalStudents > 0
+                ? ((masteredCount / totalStudents) * 100).toFixed(1)
+                : 0;
+
+            return {
+              word: w,
+              masteredCount,
+              reviewCount,
+              learningCount,
+              masteredPercent,
+              totalStudents,
+            };
+          });
+
+          // Sort by mastered percentage (descending)
+          wordStats.sort(
+            (a, b) =>
+              parseFloat(b.masteredPercent) - parseFloat(a.masteredPercent),
+          );
+
+          $("view-words").innerHTML = wordStats
+            .map((ws) => {
+              const w = ws.word;
+              return `
+              <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                <div class="flex justify-between items-start mb-2">
+                  <div class="flex-1">
+                    <h3 class="font-bold text-white font-jp text-xl">${w.kanji}</h3>
+                    <p class="text-sm text-slate-400">${w.furigana}</p>
+                    <p class="text-xs text-purple-300">${w.vi}</p>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-2xl font-bold ${ws.masteredPercent >= 70 ? "text-green-400" : ws.masteredPercent >= 40 ? "text-orange-400" : "text-red-400"}">${ws.masteredPercent}%</div>
+                    <div class="text-xs text-slate-400">Đã thuộc</div>
+                  </div>
+                </div>
+                
+                <div class="w-full bg-slate-700 rounded-full h-2 mb-3">
+                  <div class="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full" style="width: ${ws.masteredPercent}%"></div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div class="bg-slate-900/50 p-2 rounded">
+                    <div class="text-blue-400 font-bold">${ws.learningCount}</div>
+                    <div class="text-slate-500">Đang học</div>
+                  </div>
+                  <div class="bg-slate-900/50 p-2 rounded">
+                    <div class="text-orange-400 font-bold">${ws.reviewCount}</div>
+                    <div class="text-slate-500">Cần ôn</div>
+                  </div>
+                  <div class="bg-slate-900/50 p-2 rounded">
+                    <div class="text-green-400 font-bold">${ws.masteredCount}/${ws.totalStudents}</div>
+                    <div class="text-slate-500">Thuộc</div>
+                  </div>
+                </div>
+              </div>
+            `;
+            })
+            .join("");
+        },
       };
 
       window.onload = window.app.init;
