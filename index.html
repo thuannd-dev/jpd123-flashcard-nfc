@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
@@ -228,10 +228,12 @@
         </div>
 
         <div class="p-6">
-          <h3 class="text-sm uppercase font-bold text-slate-500 mb-4">
-            Chọn bài học
-          </h3>
-          <div class="grid grid-cols-2 gap-4" id="lesson-grid"></div>
+          <div id="lesson-selection-section">
+            <h3 class="text-sm uppercase font-bold text-slate-500 mb-4">
+              Chọn bài học
+            </h3>
+            <div class="grid grid-cols-2 gap-4" id="lesson-grid"></div>
+          </div>
 
           <div id="teacher-dashboard-controls" class="hidden mt-8 space-y-3">
             <h3 class="text-sm uppercase font-bold text-slate-500 mb-4">
@@ -272,7 +274,18 @@
             <h3 class="text-sm uppercase font-bold text-slate-500 mb-4">
               Tiến độ
             </h3>
-            <div class="glass p-4 rounded-xl">
+
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden text-center py-8">
+              <i class="fas fa-book-open text-6xl text-slate-600 mb-4"></i>
+              <p class="text-slate-400 text-lg">Chưa có từ vựng nào</p>
+              <p class="text-slate-500 text-sm mt-2">
+                Liên hệ giáo viên để thêm từ vựng
+              </p>
+            </div>
+
+            <!-- Stats Card -->
+            <div id="stats-card" class="glass p-4 rounded-xl">
               <div class="flex justify-between text-sm mb-2">
                 <span class="text-slate-300">Đã thuộc</span>
                 <span class="text-green-400 font-bold" id="dash-mastered-count"
@@ -313,6 +326,16 @@
                 </div>
               </div>
             </div>
+
+            <!-- Continue Button -->
+            <button
+              id="continue-study-btn"
+              onclick="window.app.continueStudy()"
+              class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3 rounded-xl mt-4 flex justify-center items-center gap-2 hover:from-purple-700 hover:to-indigo-700 active:scale-95 transition-all"
+            >
+              <i class="fas fa-play"></i>
+              <span>Tiếp tục học</span>
+            </button>
           </div>
         </div>
       </section>
@@ -401,13 +424,19 @@
               >
                 <div class="flex justify-between p-4 shrink-0 relative z-30">
                   <div
-                    onclick="event.stopPropagation(); studentStudy.playAudio()"
+                    onclick="
+                      event.stopPropagation();
+                      studentStudy.playAudio();
+                    "
                     class="p-2 bg-black/20 hover:bg-white/10 rounded-full transition-colors"
                   >
                     <i class="fas fa-volume-up text-slate-300 text-xl"></i>
                   </div>
                   <div
-                    onclick="event.stopPropagation(); studentStudy.toggleFav()"
+                    onclick="
+                      event.stopPropagation();
+                      studentStudy.toggleFav();
+                    "
                     class="p-2 bg-black/20 hover:bg-white/10 rounded-full transition-colors"
                   >
                     <i
@@ -760,7 +789,7 @@
         window.history.replaceState(
           {},
           document.title,
-          window.location.pathname
+          window.location.pathname,
         );
         location.reload();
       };
@@ -931,7 +960,7 @@
                   body: JSON.stringify({
                     contents: [{ parts: [{ text: promptText }] }],
                   }),
-                }
+                },
               );
               const data = await res.json();
 
@@ -948,7 +977,7 @@
 
               if (data.error && data.error.code === 404) {
                 console.warn(
-                  `Model ${model} không dùng được (404), đang thử cái khác...`
+                  `Model ${model} không dùng được (404), đang thử cái khác...`,
                 );
                 continue;
               }
@@ -959,7 +988,7 @@
                 (data.error.code === 403 || data.error.code === 401)
               ) {
                 throw new Error(
-                  `Lỗi API Key: ${data.error.message}. Vui lòng kiểm tra API key và enable 'Generative Language API' trong Google Cloud Console.`
+                  `Lỗi API Key: ${data.error.message}. Vui lòng kiểm tra API key và enable 'Generative Language API' trong Google Cloud Console.`,
                 );
               }
 
@@ -970,7 +999,7 @@
             }
           }
           throw new Error(
-            "Tất cả Model đều lỗi! Kiểm tra Console để xem chi tiết lỗi."
+            "Tất cả Model đều lỗi! Kiểm tra Console để xem chi tiết lỗi.",
           );
         },
 
@@ -1137,8 +1166,8 @@
                 TEACHER_DOMAINS.some((d) => eVal.endsWith(d))
                   ? "teacher"
                   : eVal.endsWith(STUDENT_DOMAIN)
-                  ? "student"
-                  : null;
+                    ? "student"
+                    : null;
               if (!role) {
                 $("login-spinner").classList.add("hidden");
                 return alert("Email không hợp lệ!");
@@ -1151,7 +1180,7 @@
               };
               localStorage.setItem(
                 "jpd123_user",
-                JSON.stringify(window.session.user)
+                JSON.stringify(window.session.user),
               );
               window.app.checkRedirect();
             }, 400);
@@ -1170,12 +1199,12 @@
 
             // Lọc tất cả các từ trong bài học đó
             const wordsInLesson = window.db.words.filter(
-              (x) => x.lesson === window.session.nfcTarget.lesson
+              (x) => x.lesson === window.session.nfcTarget.lesson,
             );
 
             // Tìm từ cụ thể được quét
             const targetWord = wordsInLesson.find(
-              (x) => x.id === window.session.nfcTarget.id
+              (x) => x.id === window.session.nfcTarget.id,
             );
 
             if (targetWord) {
@@ -1187,22 +1216,49 @@
               return;
             }
           }
+
+          // Auto-start study mode for students (only on first login, not when returning from study)
+          if (
+            window.session.user.role === "student" &&
+            !window.session.hasVisitedDashboard
+          ) {
+            if (window.db.words.length === 0) {
+              setTimeout(window.app.checkRedirect, 500);
+              return;
+            }
+            window.session.currentLesson = null; // All lessons mode
+            // Load last studied position from localStorage
+            const savedIndex = localStorage.getItem("jpd123_lastStudiedIndex");
+            const startIndex = savedIndex ? parseInt(savedIndex) : 0;
+            window.studentStudy.init(window.db.words, null, startIndex);
+            showScreen("screen-student-study");
+            return;
+          }
+
           window.app.initDashboard();
         },
         initDashboard: () => {
+          // Mark that student has visited dashboard (prevents auto-start on return)
+          window.session.hasVisitedDashboard = true;
+
           $("user-display-name").innerText = window.session.user.name;
           $("user-role-display").innerText =
             window.session.user.role === "teacher"
               ? "Giáo viên (Online)"
               : `Học sinh - ${window.session.user.className || "N/A"}`;
-          $("lesson-grid").innerHTML = LESSONS.map(
-            (n) =>
-              `<div onclick="window.app.selectLesson(${n})" class="bg-slate-800 border border-slate-700 p-4 rounded-2xl flex flex-col items-center justify-center aspect-square hover:bg-slate-700 cursor-pointer active:scale-95"><div class="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-xl font-bold shadow-lg mb-2">${n}</div><span class="font-bold text-slate-300">Bài ${n}</span></div>`
-          ).join("");
+
           if (window.session.user.role === "teacher") {
+            // Teachers see lesson selection
+            $("lesson-grid").innerHTML = LESSONS.map(
+              (n) =>
+                `<div onclick="window.app.selectLesson(${n})" class="bg-slate-800 border border-slate-700 p-4 rounded-2xl flex flex-col items-center justify-center aspect-square hover:bg-slate-700 cursor-pointer active:scale-95"><div class="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-xl font-bold shadow-lg mb-2">${n}</div><span class="font-bold text-slate-300">Bài ${n}</span></div>`,
+            ).join("");
+            $("lesson-selection-section").classList.remove("hidden");
             $("teacher-dashboard-controls").classList.remove("hidden");
             $("student-dashboard-summary").classList.add("hidden");
           } else {
+            // Students don't see lesson selection
+            $("lesson-selection-section").classList.add("hidden");
             $("teacher-dashboard-controls").classList.add("hidden");
             $("student-dashboard-summary").classList.remove("hidden");
             window.app.renderStudentDashboardStats();
@@ -1210,6 +1266,21 @@
           showScreen("screen-dashboard");
         },
         renderStudentDashboardStats: () => {
+          const totalWords = window.db.words.length;
+
+          // Show empty state if no vocabulary
+          if (totalWords === 0) {
+            $("empty-state").classList.remove("hidden");
+            $("stats-card").classList.add("hidden");
+            $("continue-study-btn").classList.add("hidden");
+            return;
+          }
+
+          // Show stats and continue button
+          $("empty-state").classList.add("hidden");
+          $("stats-card").classList.remove("hidden");
+          $("continue-study-btn").classList.remove("hidden");
+
           let s = { l: 0, r: 0, m: 0 };
           const email = window.session.user.email;
           if (window.db.progress[email]) {
@@ -1222,9 +1293,19 @@
           $("dash-learning").innerText = s.l;
           $("dash-review").innerText = s.r;
           $("dash-done").innerText = s.m;
-          const totalWords = window.db.words.length || 1;
           $("dash-mastered-count").innerText = `${s.m}/${totalWords}`;
           $("dash-progress-bar").style.width = `${(s.m / totalWords) * 100}%`;
+        },
+        continueStudy: () => {
+          if (window.db.words.length === 0) {
+            showToast("Chưa có từ vựng nào!");
+            return;
+          }
+          window.session.currentLesson = null;
+          const savedIndex = localStorage.getItem("jpd123_lastStudiedIndex");
+          const startIndex = savedIndex ? parseInt(savedIndex) : 0;
+          window.studentStudy.init(window.db.words, null, startIndex);
+          showScreen("screen-student-study");
         },
         selectLesson: (n, tid) => {
           window.session.currentLesson = n;
@@ -1422,7 +1503,7 @@
             return alert("Bài này chưa có từ nào để xóa!");
 
           const userConfirm = prompt(
-            `CẢNH BÁO NGUY HIỂM:\nBạn sắp xóa TOÀN BỘ ${words.length} từ của Bài ${lesson}.\nHành động này không thể hoàn tác.\n\nVui lòng nhập chữ "DELETE" (viết hoa) để xác nhận:`
+            `CẢNH BÁO NGUY HIỂM:\nBạn sắp xóa TOÀN BỘ ${words.length} từ của Bài ${lesson}.\nHành động này không thể hoàn tác.\n\nVui lòng nhập chữ "DELETE" (viết hoa) để xác nhận:`,
           );
 
           if (userConfirm !== "DELETE") {
@@ -1442,19 +1523,36 @@
       };
 
       window.studentStudy = {
-        init: (w, tid) => {
+        init: (w, tid, startIndex) => {
           window.session.studyList = [...w];
-          window.session.currentIndex = tid
-            ? Math.max(
-                0,
-                window.session.studyList.findIndex((x) => x.id === tid)
-              )
-            : 0;
+          if (tid) {
+            // NFC mode - find word by ID
+            window.session.currentIndex = Math.max(
+              0,
+              window.session.studyList.findIndex((x) => x.id === tid),
+            );
+          } else if (startIndex !== undefined) {
+            // Resume from saved index
+            window.session.currentIndex = Math.min(
+              startIndex,
+              window.session.studyList.length - 1,
+            );
+          } else {
+            // Start from beginning
+            window.session.currentIndex = 0;
+          }
           window.studentStudy.render();
         },
         render: () => {
           const w = window.session.studyList[window.session.currentIndex];
           if (!w) return;
+
+          // Save current position to localStorage
+          localStorage.setItem(
+            "jpd123_lastStudiedIndex",
+            window.session.currentIndex.toString(),
+          );
+
           $("fc-current-index").innerText = window.session.currentIndex + 1;
           $("fc-total").innerText = window.session.studyList.length;
           $("fc-progress-bar").style.width = `${
@@ -1482,10 +1580,10 @@
                   e.jp
                 }</span><i onclick="event.stopPropagation(); speakJP('${e.jp.replace(
                   /'/g,
-                  "\\'"
+                  "\\'",
                 )}')" class="fas fa-volume-up text-slate-500 cursor-pointer"></i></div><div class="text-xs text-slate-300">${
                   e.vi
-                }</div></div>`
+                }</div></div>`,
             )
             .join("");
         },
@@ -1557,13 +1655,13 @@
           window.session.isShuffle = !window.session.isShuffle;
           $("btn-shuffle").classList.toggle(
             "text-purple-400",
-            window.session.isShuffle
+            window.session.isShuffle,
           );
           if (window.session.isShuffle)
             window.session.studyList.sort(() => Math.random() - 0.5);
           else
             window.session.studyList = window.db.words.filter(
-              (w) => w.lesson === window.session.currentLesson
+              (w) => w.lesson === window.session.currentLesson,
             );
           window.session.currentIndex = 0;
           window.studentStudy.render();
@@ -1596,7 +1694,7 @@
             const lesson = window.session.currentLesson;
             if (!lesson) return;
             const wordsForLesson = window.db.words.filter(
-              (w) => w.lesson === lesson
+              (w) => w.lesson === lesson,
             );
             const currentId =
               window.session.studyList[window.session.currentIndex]?.id;
