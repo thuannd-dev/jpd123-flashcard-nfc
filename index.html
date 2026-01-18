@@ -240,6 +240,14 @@
               Quản lý
             </h3>
 
+            <button
+              onclick="window.app.openAllVocabulary()"
+              class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 hover:from-purple-700 hover:to-indigo-700 active:scale-95 transition-all mb-3"
+            >
+              <i class="fas fa-book"></i>
+              <span>Quản lý từ vựng</span>
+            </button>
+
             <div class="grid grid-cols-2 gap-3">
               <button
                 onclick="excelMgr.exportTopWords()"
@@ -353,9 +361,7 @@
           >
             <i class="fas fa-arrow-left mr-2"></i>Quay lại
           </button>
-          <h2 class="font-bold text-lg">
-            Bài <span id="mgr-lesson-num"></span>
-          </h2>
+          <h2 class="font-bold text-lg">Tất cả từ vựng</h2>
           <div class="flex gap-2">
             <button
               onclick="teacherMgr.deleteAllWords()"
@@ -1242,12 +1248,8 @@
               : `Học sinh - ${window.session.user.className || "N/A"}`;
 
           if (window.session.user.role === "teacher") {
-            // Teachers see lesson selection
-            $("lesson-grid").innerHTML = LESSONS.map(
-              (n) =>
-                `<div onclick="window.app.selectLesson(${n})" class="bg-slate-800 border border-slate-700 p-4 rounded-2xl flex flex-col items-center justify-center aspect-square hover:bg-slate-700 cursor-pointer active:scale-95"><div class="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-xl font-bold shadow-lg mb-2">${n}</div><span class="font-bold text-slate-300">Bài ${n}</span></div>`,
-            ).join("");
-            $("lesson-selection-section").classList.remove("hidden");
+            // Teachers don't see lesson selection anymore
+            $("lesson-selection-section").classList.add("hidden");
             $("teacher-dashboard-controls").classList.remove("hidden");
             $("student-dashboard-summary").classList.add("hidden");
           } else {
@@ -1301,6 +1303,10 @@
           window.studentStudy.init(window.db.words, null, startIndex);
           showScreen("screen-student-study");
         },
+        openAllVocabulary: () => {
+          window.teacherMgr.init(null, window.db.words);
+          showScreen("screen-teacher-manager");
+        },
         selectLesson: (n, tid) => {
           window.session.currentLesson = n;
           const w = window.db.words.filter((x) => x.lesson === n);
@@ -1340,7 +1346,7 @@
         currentWords: [],
         init: (l, w) => {
           window.teacherMgr.currentWords = w;
-          $("mgr-lesson-num").innerText = l;
+          // No longer need to show lesson number
           window.teacherMgr.renderList();
         },
 
@@ -1351,7 +1357,7 @@
 
           listEl.innerHTML = window.teacherMgr.currentWords
             .map((w) => {
-              const link = `${baseUrl}?lesson=${w.lesson}&id=${w.id}`;
+              const link = `${baseUrl}?id=${w.id}`;
               const safeId = String(w.id)
                 .replace(/'/g, "\\'")
                 .replace(/"/g, "&quot;");
