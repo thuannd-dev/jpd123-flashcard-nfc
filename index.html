@@ -1126,9 +1126,8 @@
         init: () => {
           window.loadData();
           const p = new URLSearchParams(location.search);
-          if (p.get("lesson") && p.get("id"))
+          if (p.get("id"))
             window.session.nfcTarget = {
-              lesson: parseInt(p.get("lesson")),
               id: p.get("id"),
             };
 
@@ -1190,27 +1189,22 @@
           });
         },
         checkRedirect: () => {
-          // FIX: Quét NFC -> Nạp toàn bộ từ của bài học đó -> Nhảy đến từ được quét
+          // NFC -> Tìm từ được quét trong TẤT CẢ từ vựng -> Hiển thị tất cả từ, focus vào từ được quét
           if (window.session.nfcTarget) {
             if (window.db.words.length === 0) {
               setTimeout(window.app.checkRedirect, 500);
               return;
             }
 
-            // Lọc tất cả các từ trong bài học đó
-            const wordsInLesson = window.db.words.filter(
-              (x) => x.lesson === window.session.nfcTarget.lesson,
-            );
-
-            // Tìm từ cụ thể được quét
-            const targetWord = wordsInLesson.find(
+            // Tìm từ cụ thể được quét trong TẤT CẢ từ vựng
+            const targetWord = window.db.words.find(
               (x) => x.id === window.session.nfcTarget.id,
             );
 
             if (targetWord) {
-              window.session.currentLesson = window.session.nfcTarget.lesson;
-              // Init với toàn bộ danh sách từ, nhưng ID target là từ vừa quét
-              window.studentStudy.init(wordsInLesson, targetWord.id);
+              window.session.currentLesson = null; // All words mode
+              // Init với TẤT CẢ từ vựng, nhưng focus vào từ được quét
+              window.studentStudy.init(window.db.words, targetWord.id);
               showScreen("screen-student-study");
               window.session.nfcTarget = null;
               return;
