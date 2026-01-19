@@ -460,21 +460,13 @@
                   </div>
                 </div>
                 <div
-                  class="flex-1 flex flex-col items-center justify-start w-full px-4 pt-4 relative z-20"
+                  class="flex-1 flex flex-col items-center justify-center w-full px-4 pt-4 relative z-20"
                 >
-                  <div
-                    id="fc-image-container-front"
-                    class="hidden mb-6 w-full px-6 flex justify-center"
-                    style="min-height: 0"
-                  >
-                    <img
-                      id="fc-image-front"
-                      src=""
-                      alt="Minh họa"
-                      class="card-image card-image-front"
-                    />
-                  </div>
                   <div class="w-full text-center shrink-0">
+                    <div
+                      id="fc-furigana-front"
+                      class="text-2xl md:text-3xl font-jp text-purple-300 mb-2 tracking-wide"
+                    ></div>
                     <h1
                       id="fc-kanji-front"
                       class="kanji-glow text-5xl md:text-7xl font-jp font-bold text-white tracking-wide leading-tight break-words relative z-50 drop-shadow-lg"
@@ -1675,11 +1667,8 @@
             100
           }%`;
           $("flashcard-inner").parentElement.classList.remove("card-flip");
+          $("fc-furigana-front").innerText = w.furigana || "";
           $("fc-kanji-front").innerText = w.kanji;
-          if (w.image) {
-            $("fc-image-front").src = w.image;
-            $("fc-image-container-front").classList.remove("hidden");
-          } else $("fc-image-container-front").classList.add("hidden");
           $("fc-kanji-back").innerHTML = generateRubyHtml(w.kanji, w.furigana);
           $("fc-meaning-vi").innerText = w.vi;
           $("fc-romaji").innerText = w.romaji || "";
