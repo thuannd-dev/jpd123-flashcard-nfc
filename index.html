@@ -406,6 +406,78 @@
         </div>
       </section>
 
+      <!-- Question List Screen (for logged-in users) -->
+      <section
+        id="screen-question-list"
+        class="hidden min-h-screen bg-slate-900 pb-20"
+      >
+        <header
+          class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur border-b border-slate-800 p-4 flex items-center justify-between"
+        >
+          <button
+            onclick="app.exitStudyMode()"
+            class="text-slate-400 hover:text-white"
+          >
+            <i class="fas fa-arrow-left mr-2"></i>Quay lại
+          </button>
+          <h2 class="font-bold text-lg">Danh sách từ vựng</h2>
+          <div class="w-16"></div>
+        </header>
+
+        <div class="p-4 space-y-4">
+          <!-- Filter Tabs -->
+          <div class="flex gap-2 overflow-x-auto pb-2">
+            <button
+              onclick="questionList.filterByStatus('all')"
+              id="filter-all"
+              class="px-4 py-2 rounded-full bg-purple-600 text-white font-bold text-sm whitespace-nowrap"
+            >
+              Tất cả (<span id="count-all">0</span>)
+            </button>
+            <button
+              onclick="questionList.filterByStatus('learning')"
+              id="filter-learning"
+              class="px-4 py-2 rounded-full bg-slate-800 text-slate-400 font-bold text-sm whitespace-nowrap border border-slate-700"
+            >
+              Đang học (<span id="count-learning">0</span>)
+            </button>
+            <button
+              onclick="questionList.filterByStatus('review')"
+              id="filter-review"
+              class="px-4 py-2 rounded-full bg-slate-800 text-slate-400 font-bold text-sm whitespace-nowrap border border-slate-700"
+            >
+              Ôn lại (<span id="count-review">0</span>)
+            </button>
+            <button
+              onclick="questionList.filterByStatus('mastered')"
+              id="filter-mastered"
+              class="px-4 py-2 rounded-full bg-slate-800 text-slate-400 font-bold text-sm whitespace-nowrap border border-slate-700"
+            >
+              Đã thuộc (<span id="count-mastered">0</span>)
+            </button>
+          </div>
+
+          <!-- Search Bar -->
+          <div class="relative">
+            <i
+              class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+            ></i>
+            <input
+              type="text"
+              id="question-search"
+              placeholder="Tìm kiếm từ vựng..."
+              class="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+              oninput="questionList.search(this.value)"
+            />
+          </div>
+
+          <!-- Word List -->
+          <div id="question-list-container" class="space-y-2">
+            <!-- Dynamic content -->
+          </div>
+        </div>
+      </section>
+
       <section
         id="screen-teacher-manager"
         class="hidden min-h-screen bg-slate-900"
@@ -599,17 +671,35 @@
               <i class="fas fa-pencil-alt"></i> Quiz
             </button>
           </div>
-          <!-- Quiz button for NFC mode -->
+          <!-- Buttons for NFC mode -->
           <div
             id="quiz-button-nfc"
-            class="hidden w-full mt-6 max-w-sm mx-auto shrink-0"
+            class="hidden w-full mt-6 max-w-sm mx-auto shrink-0 space-y-2"
           >
+            <!-- Back to List button (logged-in only) -->
             <button
-              onclick="studentStudy.startQuiz()"
-              class="w-full bg-purple-600 h-14 rounded-full text-white hover:bg-purple-700 font-bold text-lg shadow-lg"
+              id="nfc-back-to-list"
+              onclick="studentStudy.navigateToQuestionList()"
+              class="hidden w-full bg-slate-800 h-12 rounded-full text-slate-300 hover:bg-slate-700 font-bold text-sm border border-slate-700"
             >
-              <i class="fas fa-pencil-alt mr-2"></i>Làm bài tập trắc nghiệm
+              <i class="fas fa-list mr-2"></i>Quay lại DS câu hỏi
             </button>
+
+            <!-- Review from current + Quiz buttons -->
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                onclick="studentStudy.startReviewFromCurrent()"
+                class="bg-slate-800 h-12 rounded-full text-orange-400 font-bold border border-orange-500/30 hover:bg-orange-500/10 text-sm"
+              >
+                <i class="fas fa-sync-alt mr-1"></i>Ôn từ đây
+              </button>
+              <button
+                onclick="studentStudy.startQuiz()"
+                class="bg-purple-600 h-12 rounded-full text-white hover:bg-purple-700 font-bold text-sm"
+              >
+                <i class="fas fa-pencil-alt mr-1"></i>Quiz
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -947,16 +1037,24 @@
                     type="checkbox"
                     id="custom-quiz-enabled"
                     class="w-5 h-5 rounded bg-slate-700 border-slate-600 text-purple-600 focus:ring-2 focus:ring-purple-500"
-                    onchange="document.getElementById('custom-quiz-form').classList.toggle('hidden')"
+                    onchange="
+                      document
+                        .getElementById('custom-quiz-form')
+                        .classList.toggle('hidden')
+                    "
                   />
-                  <span class="font-bold text-white">Tạo quiz riêng cho từ này</span>
+                  <span class="font-bold text-white"
+                    >Tạo quiz riêng cho từ này</span
+                  >
                 </label>
                 <span class="text-xs text-slate-400">📝 Quiz tùy chỉnh</span>
               </div>
 
               <div id="custom-quiz-form" class="hidden space-y-3 mt-3">
                 <div>
-                  <label class="block text-sm font-bold text-slate-300 mb-1">Câu hỏi:</label>
+                  <label class="block text-sm font-bold text-slate-300 mb-1"
+                    >Câu hỏi:</label
+                  >
                   <textarea
                     id="custom-quiz-question"
                     class="w-full bg-slate-700 text-white p-2 rounded border border-slate-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-sm"
@@ -966,11 +1064,21 @@
                 </div>
 
                 <div class="space-y-2">
-                  <label class="block text-sm font-bold text-slate-300">4 đáp án (chọn đáp án đúng):</label>
-                  
+                  <label class="block text-sm font-bold text-slate-300"
+                    >4 đáp án (chọn đáp án đúng):</label
+                  >
+
                   <div class="flex items-center gap-2">
-                    <input type="radio" name="correct-answer" value="0" id="correct-0" class="w-4 h-4 text-purple-600" />
-                    <label for="correct-0" class="text-purple-400 font-bold">A.</label>
+                    <input
+                      type="radio"
+                      name="correct-answer"
+                      value="0"
+                      id="correct-0"
+                      class="w-4 h-4 text-purple-600"
+                    />
+                    <label for="correct-0" class="text-purple-400 font-bold"
+                      >A.</label
+                    >
                     <input
                       type="text"
                       id="custom-quiz-option-0"
@@ -980,8 +1088,16 @@
                   </div>
 
                   <div class="flex items-center gap-2">
-                    <input type="radio" name="correct-answer" value="1" id="correct-1" class="w-4 h-4 text-purple-600" />
-                    <label for="correct-1" class="text-purple-400 font-bold">B.</label>
+                    <input
+                      type="radio"
+                      name="correct-answer"
+                      value="1"
+                      id="correct-1"
+                      class="w-4 h-4 text-purple-600"
+                    />
+                    <label for="correct-1" class="text-purple-400 font-bold"
+                      >B.</label
+                    >
                     <input
                       type="text"
                       id="custom-quiz-option-1"
@@ -991,8 +1107,16 @@
                   </div>
 
                   <div class="flex items-center gap-2">
-                    <input type="radio" name="correct-answer" value="2" id="correct-2" class="w-4 h-4 text-purple-600" />
-                    <label for="correct-2" class="text-purple-400 font-bold">C.</label>
+                    <input
+                      type="radio"
+                      name="correct-answer"
+                      value="2"
+                      id="correct-2"
+                      class="w-4 h-4 text-purple-600"
+                    />
+                    <label for="correct-2" class="text-purple-400 font-bold"
+                      >C.</label
+                    >
                     <input
                       type="text"
                       id="custom-quiz-option-2"
@@ -1002,8 +1126,16 @@
                   </div>
 
                   <div class="flex items-center gap-2">
-                    <input type="radio" name="correct-answer" value="3" id="correct-3" class="w-4 h-4 text-purple-600" />
-                    <label for="correct-3" class="text-purple-400 font-bold">D.</label>
+                    <input
+                      type="radio"
+                      name="correct-answer"
+                      value="3"
+                      id="correct-3"
+                      class="w-4 h-4 text-purple-600"
+                    />
+                    <label for="correct-3" class="text-purple-400 font-bold"
+                      >D.</label
+                    >
                     <input
                       type="text"
                       id="custom-quiz-option-3"
@@ -1014,7 +1146,8 @@
                 </div>
 
                 <p class="text-xs text-slate-400 italic">
-                  <i class="fas fa-info-circle"></i> Đáp án sẽ được shuffle tự động khi học sinh làm quiz
+                  <i class="fas fa-info-circle"></i> Đáp án sẽ được shuffle tự
+                  động khi học sinh làm quiz
                 </p>
               </div>
             </div>
@@ -1717,7 +1850,7 @@
               const safeId = String(w.id)
                 .replace(/'/g, "\\'")
                 .replace(/"/g, "&quot;");
-              
+
               // Check if word has custom quiz
               const hasCustomQuiz = w.customQuiz?.enabled;
 
@@ -1734,7 +1867,7 @@
                                     <div class="font-bold text-lg font-jp truncate text-white">${
                                       w.kanji
                                     }</div>
-                                    ${hasCustomQuiz ? '<span class="text-xs bg-purple-600/30 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30 shrink-0">📝 Quiz</span>' : ''}
+                                    ${hasCustomQuiz ? '<span class="text-xs bg-purple-600/30 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30 shrink-0">📝 Quiz</span>' : ""}
                                 </div>
                                 <div class="text-xs text-slate-400 truncate">${
                                   w.vi
@@ -1810,7 +1943,7 @@
             $("preview-image-container").classList.add("hidden");
           }
           window.teacherMgr.renderExampleInputs(w.examples || []);
-          
+
           // Show modal first to ensure DOM elements are accessible
           $("modal-word").classList.remove("hidden");
 
@@ -1822,7 +1955,7 @@
               customQuizCheckbox.checked = true;
               customQuizSection.classList.remove("hidden");
               $("custom-quiz-question").value = w.customQuiz.question || "";
-              
+
               // Populate 4 options and mark correct answer
               for (let i = 0; i < 4; i++) {
                 const option = w.customQuiz.options?.[i];
@@ -1898,7 +2031,9 @@
             let correctIndex = -1;
 
             // Get correct answer index from radio buttons
-            const correctRadio = document.querySelector('input[name="correct-answer"]:checked');
+            const correctRadio = document.querySelector(
+              'input[name="correct-answer"]:checked',
+            );
             if (correctRadio) {
               correctIndex = parseInt(correctRadio.value);
             }
@@ -1908,23 +2043,25 @@
               const text = $(`custom-quiz-option-${i}`).value.trim();
               options.push({
                 text: text,
-                isCorrect: i === correctIndex
+                isCorrect: i === correctIndex,
               });
             }
 
             // Validate: must have at least one correct answer and all 4 options filled
-            const allOptionsFilled = options.every(opt => opt.text !== "");
+            const allOptionsFilled = options.every((opt) => opt.text !== "");
             const hasCorrectAnswer = correctIndex !== -1;
 
             if (allOptionsFilled && hasCorrectAnswer) {
               nw.customQuiz = {
                 enabled: true,
                 question: question || nw.kanji, // Use kanji if no custom question
-                options: options
+                options: options,
               };
             } else if (allOptionsFilled || hasCorrectAnswer || question) {
               // Some fields filled but incomplete - warn user
-              return alert("Quiz tùy chỉnh chưa hoàn chỉnh! Vui lòng điền đầy đủ 4 đáp án và chọn đáp án đúng.");
+              return alert(
+                "Quiz tùy chỉnh chưa hoàn chỉnh! Vui lòng điền đầy đủ 4 đáp án và chọn đáp án đúng.",
+              );
             }
             // If nothing filled, just don't save custom quiz (disabled state)
           }
@@ -1970,6 +2107,157 @@
         },
       };
 
+      window.questionList = {
+        currentFilter: "all",
+        allWords: [],
+        filteredWords: [],
+        currentWordIndex: 0,
+
+        init: (words, currentIndex = 0) => {
+          window.questionList.allWords = words;
+          window.questionList.currentWordIndex = currentIndex;
+          window.questionList.updateCounts();
+          window.questionList.filterByStatus("all");
+        },
+
+        updateCounts: () => {
+          const progress = window.db.progress[window.session.user.email] || {};
+          const counts = { all: 0, learning: 0, review: 0, mastered: 0 };
+
+          window.questionList.allWords.forEach((word) => {
+            counts.all++;
+            const status = progress[word.id] || "learning";
+            counts[status] = (counts[status] || 0) + 1;
+          });
+
+          $("count-all").innerText = counts.all;
+          $("count-learning").innerText = counts.learning;
+          $("count-review").innerText = counts.review;
+          $("count-mastered").innerText = counts.mastered;
+        },
+
+        filterByStatus: (status) => {
+          window.questionList.currentFilter = status;
+
+          // Update button styles
+          ["all", "learning", "review", "mastered"].forEach((s) => {
+            const btn = $("filter-" + s);
+            if (s === status) {
+              btn.className =
+                "px-4 py-2 rounded-full bg-purple-600 text-white font-bold text-sm whitespace-nowrap";
+            } else {
+              btn.className =
+                "px-4 py-2 rounded-full bg-slate-800 text-slate-400 font-bold text-sm whitespace-nowrap border border-slate-700";
+            }
+          });
+
+          // Filter words
+          const progress = window.db.progress[window.session.user.email] || {};
+          if (status === "all") {
+            window.questionList.filteredWords = window.questionList.allWords;
+          } else {
+            window.questionList.filteredWords =
+              window.questionList.allWords.filter((w) => {
+                const wordStatus = progress[w.id] || "learning";
+                return wordStatus === status;
+              });
+          }
+
+          window.questionList.render();
+        },
+
+        search: (query) => {
+          const searchTerm = query.toLowerCase().trim();
+          if (!searchTerm) {
+            window.questionList.filterByStatus(
+              window.questionList.currentFilter,
+            );
+            return;
+          }
+
+          window.questionList.filteredWords =
+            window.questionList.allWords.filter((w) => {
+              return (
+                w.kanji.toLowerCase().includes(searchTerm) ||
+                (w.furigana && w.furigana.toLowerCase().includes(searchTerm)) ||
+                (w.romaji && w.romaji.toLowerCase().includes(searchTerm)) ||
+                w.vi.toLowerCase().includes(searchTerm)
+              );
+            });
+
+          window.questionList.render();
+        },
+
+        render: () => {
+          const container = $("question-list-container");
+          const progress = window.db.progress[window.session.user.email] || {};
+
+          if (window.questionList.filteredWords.length === 0) {
+            container.innerHTML = `
+              <div class="text-center py-12 text-slate-400">
+                <i class="fas fa-inbox text-4xl mb-3 opacity-30"></i>
+                <p>Không tìm thấy từ vựng nào</p>
+              </div>
+            `;
+            return;
+          }
+
+          container.innerHTML = window.questionList.filteredWords
+            .map((word, idx) => {
+              const status = progress[word.id] || "learning";
+              const statusColors = {
+                learning: "border-blue-500/30 bg-blue-500/5",
+                review: "border-orange-500/30 bg-orange-500/5",
+                mastered: "border-green-500/30 bg-green-500/5",
+              };
+              const statusIcons = {
+                learning: '<i class="fas fa-book-open text-blue-400"></i>',
+                review: '<i class="fas fa-sync-alt text-orange-400"></i>',
+                mastered: '<i class="fas fa-check-circle text-green-400"></i>',
+              };
+              const statusLabels = {
+                learning: "Đang học",
+                review: "Ôn lại",
+                mastered: "Đã thuộc",
+              };
+
+              const actualIndex = window.questionList.allWords.findIndex(
+                (w) => w.id === word.id,
+              );
+
+              return `
+              <div 
+                onclick="questionList.jumpToWord(${actualIndex})"
+                class="glass p-4 rounded-xl border ${statusColors[status]} cursor-pointer hover:border-purple-500/50 transition-all active:scale-98"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="text-xs text-slate-500 font-mono">#${actualIndex + 1}</span>
+                      ${statusIcons[status]}
+                      <span class="text-xs text-slate-400">${statusLabels[status]}</span>
+                    </div>
+                    <div class="text-lg font-bold text-white mb-1">${word.kanji}</div>
+                    <div class="text-sm text-slate-400 mb-1">${word.furigana || ""}</div>
+                    <div class="text-sm text-slate-300">${word.vi}</div>
+                  </div>
+                  <i class="fas fa-chevron-right text-slate-600 mt-2"></i>
+                </div>
+              </div>
+            `;
+            })
+            .join("");
+        },
+
+        jumpToWord: (index) => {
+          // Jump to specific word in study mode
+          window.session.currentIndex = index;
+          window.session.studyList = window.questionList.allWords;
+          window.studentStudy.render();
+          showScreen("screen-student-study");
+        },
+      };
+
       window.studentStudy = {
         init: (w, tid, startIndex) => {
           window.session.studyList = [...w];
@@ -2004,9 +2292,18 @@
           // Hide navigation buttons if in NFC mode, but keep quiz button
           if (window.session.isNFCMode) {
             $("study-nav-buttons").style.display = "none";
-            // Show only quiz button in NFC mode
+            // Show NFC buttons
             if ($("quiz-button-nfc")) {
               $("quiz-button-nfc").classList.remove("hidden");
+              // Show back to list button only for logged-in users (not guests)
+              const backBtn = $("nfc-back-to-list");
+              if (backBtn) {
+                if (window.session.user.email !== "guest@nfc.temp") {
+                  backBtn.classList.remove("hidden");
+                } else {
+                  backBtn.classList.add("hidden");
+                }
+              }
             }
           } else {
             $("study-nav-buttons").style.display = "grid";
@@ -2045,6 +2342,37 @@
                 }</div></div>`,
             )
             .join("");
+        },
+        navigateToQuestionList: () => {
+          // Only for logged-in users
+          if (window.session.user.email === "guest@nfc.temp") {
+            showToast("Vui lòng đăng nhập để xem danh sách câu hỏi");
+            return;
+          }
+          // Load all words and show question list screen
+          window.questionList.init(
+            window.db.words,
+            window.session.currentIndex,
+          );
+          showScreen("screen-question-list");
+        },
+        startReviewFromCurrent: () => {
+          // Start reviewing from current position (works for all users including guests)
+          const currentIdx = window.session.currentIndex;
+          const wordsFromCurrent = window.session.studyList.slice(currentIdx);
+
+          if (wordsFromCurrent.length === 0) {
+            showToast("Không còn từ nào để ôn");
+            return;
+          }
+
+          showToast(
+            `Bắt đầu ôn ${wordsFromCurrent.length} từ từ vị trí hiện tại`,
+          );
+          // Reinitialize with words from current position
+          window.session.studyList = wordsFromCurrent;
+          window.session.currentIndex = 0;
+          window.studentStudy.render();
         },
         flipCard: () => {
           const c = $("flashcard-inner").parentElement;
@@ -2142,34 +2470,40 @@
           // Check if word has custom quiz enabled
           if (currentWord.customQuiz?.enabled) {
             const cq = currentWord.customQuiz;
-            
+
             // Validate custom quiz data
-            const hasAllOptions = cq.options?.length === 4 && 
-              cq.options.every(opt => opt.text?.trim());
-            const hasCorrectAnswer = cq.options?.some(opt => opt.isCorrect);
-            
+            const hasAllOptions =
+              cq.options?.length === 4 &&
+              cq.options.every((opt) => opt.text?.trim());
+            const hasCorrectAnswer = cq.options?.some((opt) => opt.isCorrect);
+
             if (hasAllOptions && hasCorrectAnswer) {
               // Use custom quiz with shuffled options
-              const shuffledOptions = [...cq.options].sort(() => Math.random() - 0.5);
-              
+              const shuffledOptions = [...cq.options].sort(
+                () => Math.random() - 0.5,
+              );
+
               // Save quiz state
-              window.session.quizCorrectIndex = shuffledOptions.findIndex(opt => opt.isCorrect);
+              window.session.quizCorrectIndex = shuffledOptions.findIndex(
+                (opt) => opt.isCorrect,
+              );
               window.session.quizOptions = shuffledOptions;
               window.session.isCustomQuiz = true;
-              
+
               // Render custom quiz
               $("quiz-furigana").innerText = currentWord.furigana || "";
               $("quiz-question").innerText = cq.question || currentWord.kanji;
-              
+
               shuffledOptions.forEach((option, index) => {
                 $(`quiz-text-${index}`).innerText = option.text;
                 const btn = $(`quiz-option-${index}`);
                 btn.disabled = false;
-                btn.className = "quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center";
+                btn.className =
+                  "quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center";
               });
-              
+
               $("quiz-continue-btn").classList.add("hidden");
-              
+
               // Transition from flashcard to quiz
               $("screen-student-study").classList.add("fade-out");
               setTimeout(() => {
