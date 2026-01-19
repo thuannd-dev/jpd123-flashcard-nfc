@@ -118,7 +118,57 @@
       #modal-word .bg-slate-900 {
         max-height: 85vh;
       }
+
+      /* Quiz animations */
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-10px);
+        }
+        75% {
+          transform: translateX(10px);
+        }
+      }
+      .shake {
+        animation: shake 0.5s;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes fadeOut {
+        from {
+          opacity: 1;
+          transform: scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+      }
+      .fade-in {
+        animation: fadeIn 0.3s ease-out;
+      }
+      .fade-out {
+        animation: fadeOut 0.3s ease-out;
+      }
+      .quiz-option:disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
     </style>
+
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   </head>
 
   <body
@@ -542,10 +592,102 @@
               <i class="fas fa-check"></i>
             </button>
             <button
-              onclick="studentStudy.nextCard()"
-              class="bg-slate-800 h-12 rounded-full text-purple-400 hover:bg-slate-700"
+              id="quiz-nav-button"
+              onclick="studentStudy.startQuiz()"
+              class="bg-purple-600 h-12 rounded-full text-white hover:bg-purple-700 font-bold text-sm"
             >
-              <i class="fas fa-chevron-right"></i>
+              <i class="fas fa-pencil-alt"></i> Quiz
+            </button>
+          </div>
+          <!-- Quiz button for NFC mode -->
+          <div
+            id="quiz-button-nfc"
+            class="hidden w-full mt-6 max-w-sm mx-auto shrink-0"
+          >
+            <button
+              onclick="studentStudy.startQuiz()"
+              class="w-full bg-purple-600 h-14 rounded-full text-white hover:bg-purple-700 font-bold text-lg shadow-lg"
+            >
+              <i class="fas fa-pencil-alt mr-2"></i>Làm bài tập trắc nghiệm
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quiz Section -->
+      <section
+        id="screen-quiz"
+        class="hidden min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 flex items-center justify-center p-4"
+      >
+        <div class="w-full max-w-2xl">
+          <!-- Quiz Header -->
+          <div class="text-center mb-8">
+            <div
+              class="inline-block bg-purple-900/30 px-6 py-2 rounded-full border border-purple-500/30 mb-4"
+            >
+              <span class="text-purple-300 text-sm font-bold"
+                >Bài tập trắc nghiệm</span
+              >
+            </div>
+            <div
+              class="bg-slate-900/50 backdrop-blur p-6 rounded-2xl border border-slate-700 mb-6"
+            >
+              <div
+                id="quiz-furigana"
+                class="text-xl md:text-2xl font-jp text-purple-300 mb-2"
+              ></div>
+              <h2
+                id="quiz-question"
+                class="text-4xl md:text-5xl font-jp font-bold text-white"
+              ></h2>
+            </div>
+            <p class="text-slate-400 text-sm">Chọn nghĩa tiếng Việt đúng</p>
+          </div>
+
+          <!-- Answer Options -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <button
+              id="quiz-option-0"
+              onclick="studentStudy.checkAnswer(0)"
+              class="quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center"
+            >
+              <span class="font-bold text-2xl text-purple-400 mr-4">A.</span>
+              <span id="quiz-text-0" class="text-lg"></span>
+            </button>
+            <button
+              id="quiz-option-1"
+              onclick="studentStudy.checkAnswer(1)"
+              class="quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center"
+            >
+              <span class="font-bold text-2xl text-purple-400 mr-4">B.</span>
+              <span id="quiz-text-1" class="text-lg"></span>
+            </button>
+            <button
+              id="quiz-option-2"
+              onclick="studentStudy.checkAnswer(2)"
+              class="quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center"
+            >
+              <span class="font-bold text-2xl text-purple-400 mr-4">C.</span>
+              <span id="quiz-text-2" class="text-lg"></span>
+            </button>
+            <button
+              id="quiz-option-3"
+              onclick="studentStudy.checkAnswer(3)"
+              class="quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center"
+            >
+              <span class="font-bold text-2xl text-purple-400 mr-4">D.</span>
+              <span id="quiz-text-3" class="text-lg"></span>
+            </button>
+          </div>
+
+          <!-- Continue Button -->
+          <div class="text-center">
+            <button
+              id="quiz-continue-btn"
+              onclick="studentStudy.exitQuiz()"
+              class="hidden bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300"
+            >
+              Tiếp tục <i class="fas fa-arrow-right ml-2"></i>
             </button>
           </div>
         </div>
@@ -1687,11 +1829,18 @@
             window.session.currentIndex.toString(),
           );
 
-          // Hide navigation buttons if in NFC mode
+          // Hide navigation buttons if in NFC mode, but keep quiz button
           if (window.session.isNFCMode) {
             $("study-nav-buttons").style.display = "none";
+            // Show only quiz button in NFC mode
+            if ($("quiz-button-nfc")) {
+              $("quiz-button-nfc").classList.remove("hidden");
+            }
           } else {
             $("study-nav-buttons").style.display = "grid";
+            if ($("quiz-button-nfc")) {
+              $("quiz-button-nfc").classList.add("hidden");
+            }
           }
 
           $("fc-current-index").innerText = window.session.currentIndex + 1;
@@ -1812,6 +1961,164 @@
           const i = $("fc-star");
           i.classList.toggle("fas");
           i.classList.toggle("far");
+        },
+
+        startQuiz: () => {
+          const currentWord =
+            window.session.studyList[window.session.currentIndex];
+
+          // In NFC mode, use all words from database for quiz options
+          // In normal mode, use current study list
+          const allWords = window.session.isNFCMode
+            ? window.db.words
+            : window.session.studyList;
+
+          // Check if enough words for quiz
+          if (allWords.length < 4) {
+            showToast("Cần ít nhất 4 từ vựng để làm quiz!");
+            return;
+          }
+
+          // Generate wrong answers (3 random different words)
+          const wrongWords = allWords
+            .filter((w) => w.id !== currentWord.id)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3);
+
+          // Create 4 options and shuffle
+          const options = [currentWord, ...wrongWords].sort(
+            () => Math.random() - 0.5,
+          );
+
+          // Save quiz state
+          window.session.quizCorrectIndex = options.findIndex(
+            (w) => w.id === currentWord.id,
+          );
+          window.session.quizOptions = options;
+
+          // Render quiz
+          $("quiz-furigana").innerText = currentWord.furigana || "";
+          $("quiz-question").innerText = currentWord.kanji;
+
+          options.forEach((word, index) => {
+            $(`quiz-text-${index}`).innerText = word.vi;
+            const btn = $(`quiz-option-${index}`);
+            btn.disabled = false;
+            btn.className =
+              "quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center";
+          });
+
+          $("quiz-continue-btn").classList.add("hidden");
+
+          // Transition from flashcard to quiz with fade
+          $("screen-student-study").classList.add("fade-out");
+          setTimeout(() => {
+            $("screen-student-study").classList.add("hidden");
+            $("screen-student-study").classList.remove("fade-out");
+            $("screen-quiz").classList.remove("hidden");
+            $("screen-quiz").classList.add("fade-in");
+            setTimeout(() => {
+              $("screen-quiz").classList.remove("fade-in");
+            }, 300);
+          }, 300);
+        },
+
+        checkAnswer: (selectedIndex) => {
+          const correctIndex = window.session.quizCorrectIndex;
+          const isCorrect = selectedIndex === correctIndex;
+
+          // Disable all buttons
+          for (let i = 0; i < 4; i++) {
+            $(`quiz-option-${i}`).disabled = true;
+          }
+
+          if (isCorrect) {
+            // Correct answer - green + confetti
+            $(`quiz-option-${selectedIndex}`).className =
+              "quiz-option bg-green-500 border-green-400 text-white p-6 rounded-xl border-2 transition-all duration-300 text-left min-h-[100px] flex items-center";
+
+            // Confetti effect
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 },
+            });
+
+            // Update progress to mastered for correct answer
+            const currentWord =
+              window.session.studyList[window.session.currentIndex];
+            const email = window.session.user.email;
+
+            // Only save progress for non-guest users
+            if (email !== "guest@nfc.temp") {
+              if (!window.db.progress[email]) window.db.progress[email] = {};
+              window.db.progress[email][currentWord.id] = {
+                status: "mastered",
+                lastReviewed: Date.now(),
+              };
+              window.progressCloud.saveStudentProgress({
+                email: window.session.user.email,
+                name: window.session.user.name,
+                className: window.session.user.className || "",
+                progress: window.db.progress[email],
+              });
+            }
+
+            showToast("Chính xác! 🎉 Đã lưu vào đã thuộc!");
+          } else {
+            // Wrong answer - red + shake + show correct
+            const selectedBtn = $(`quiz-option-${selectedIndex}`);
+            selectedBtn.className =
+              "quiz-option bg-red-500 border-red-400 text-white p-6 rounded-xl border-2 transition-all duration-300 text-left min-h-[100px] flex items-center shake";
+
+            // Show correct answer in green
+            setTimeout(() => {
+              $(`quiz-option-${correctIndex}`).className =
+                "quiz-option bg-green-500 border-green-400 text-white p-6 rounded-xl border-2 transition-all duration-300 text-left min-h-[100px] flex items-center";
+            }, 500);
+
+            showToast("Sai rồi! Đáp án đúng đã được hiển thị");
+          }
+
+          // Show continue button
+          setTimeout(() => {
+            $("quiz-continue-btn").classList.remove("hidden");
+          }, 1000);
+        },
+
+        exitQuiz: () => {
+          // Transition from quiz back to flashcard
+          $("screen-quiz").classList.add("fade-out");
+          setTimeout(() => {
+            $("screen-quiz").classList.add("hidden");
+            $("screen-quiz").classList.remove("fade-out");
+
+            // Handle NFC mode vs normal mode
+            if (window.session.isNFCMode) {
+              // In NFC mode, just show the flashcard again (same word)
+              $("screen-student-study").classList.remove("hidden");
+              $("screen-student-study").classList.add("fade-in");
+              setTimeout(() => {
+                $("screen-student-study").classList.remove("fade-in");
+              }, 300);
+            } else {
+              // In normal mode, move to next card
+              if (
+                window.session.currentIndex <
+                window.session.studyList.length - 1
+              ) {
+                window.session.currentIndex++;
+                window.studentStudy.render();
+              } else {
+                showToast("Đã hết từ vựng!");
+              }
+              $("screen-student-study").classList.remove("hidden");
+              $("screen-student-study").classList.add("fade-in");
+              setTimeout(() => {
+                $("screen-student-study").classList.remove("fade-in");
+              }, 300);
+            }
+          }, 300);
         },
       };
 
