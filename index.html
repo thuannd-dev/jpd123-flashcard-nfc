@@ -622,6 +622,41 @@
           <div id="view-words" class="hidden space-y-3">
             <!-- Dynamic content -->
           </div>
+
+          <!-- Word Detail Modal -->
+          <div
+            id="modal-word-detail"
+            class="fixed inset-0 bg-black/90 backdrop-blur-md hidden z-50 flex items-center justify-center p-4"
+          >
+            <div
+              class="bg-slate-900 w-full max-w-2xl rounded-2xl border border-slate-700 shadow-2xl flex flex-col max-h-[80vh]"
+            >
+              <div
+                class="p-4 border-b border-slate-800 flex justify-between items-center bg-gradient-to-r from-purple-900/50 to-pink-900/50 rounded-t-2xl"
+              >
+                <div>
+                  <h3
+                    class="font-bold text-2xl text-white font-jp"
+                    id="word-detail-kanji"
+                  ></h3>
+                  <p
+                    class="text-sm text-purple-300"
+                    id="word-detail-furigana"
+                  ></p>
+                  <p class="text-xs text-slate-400" id="word-detail-vi"></p>
+                </div>
+                <button
+                  onclick="window.classMgr.closeWordDetail()"
+                  class="text-slate-400 hover:text-white"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              <div class="p-6 overflow-y-auto flex-1" id="word-detail-content">
+                <!-- Dynamic content -->
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1989,7 +2024,7 @@
             .map((ws) => {
               const w = ws.word;
               return `
-              <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+              <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 cursor-pointer hover:border-purple-500 transition-colors" onclick="window.classMgr.showWordDetail('${w.id}')">
                 <div class="flex justify-between items-start mb-2">
                   <div class="flex-1">
                     <h3 class="font-bold text-white font-jp text-xl">${w.kanji}</h3>
@@ -2024,6 +2059,126 @@
             `;
             })
             .join("");
+        },
+
+        showWordDetail: (wordId) => {
+          const word = window.db.words.find((w) => w.id === wordId);
+          if (!word) return;
+
+          const students = window.__progressDocs || [];
+
+          // Phân loại học sinh
+          const studiedStudents = [];
+          const notStudiedStudents = [];
+
+          students.forEach((s) => {
+            const progress = s.progress || {};
+            if (progress[wordId]) {
+              studiedStudents.push({
+                student: s,
+                status: progress[wordId].status,
+              });
+            } else {
+              notStudiedStudents.push(s);
+            }
+          });
+
+          // Cập nhật thông tin từ
+          $("word-detail-kanji").innerText = word.kanji;
+          $("word-detail-furigana").innerText = word.furigana || "";
+          $("word-detail-vi").innerText = word.vi;
+
+          // Render danh sách học sinh
+          let html = "";
+
+          if (studiedStudents.length > 0) {
+            html += `
+              <div class="mb-6">
+                <h4 class="font-bold text-green-400 mb-3 flex items-center">
+                  <i class="fas fa-check-circle mr-2"></i>
+                  Đã học (${studiedStudents.length} học sinh)
+                </h4>
+                <div class="space-y-2">
+            `;
+
+            studiedStudents.forEach((item) => {
+              const statusColor =
+                item.status === "mastered"
+                  ? "text-green-400"
+                  : item.status === "review"
+                    ? "text-orange-400"
+                    : "text-blue-400";
+              const statusText =
+                item.status === "mastered"
+                  ? "Thuộc"
+                  : item.status === "review"
+                    ? "Cần ôn"
+                    : "Đang học";
+
+              html += `
+                <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 flex justify-between items-center">
+                  <div>
+                    <div class="font-bold text-white">${item.student.name}</div>
+                    <div class="text-xs text-slate-400">${item.student.studentId || "N/A"}</div>
+                  </div>
+                  <div class="${statusColor} text-sm font-bold">
+                    ${statusText}
+                  </div>
+                </div>
+              `;
+            });
+
+            html += `
+                </div>
+              </div>
+            `;
+          }
+
+          if (notStudiedStudents.length > 0) {
+            html += `
+              <div>
+                <h4 class="font-bold text-slate-400 mb-3 flex items-center">
+                  <i class="fas fa-times-circle mr-2"></i>
+                  Chưa học (${notStudiedStudents.length} học sinh)
+                </h4>
+                <div class="space-y-2">
+            `;
+
+            notStudiedStudents.forEach((s) => {
+              html += `
+                <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 flex justify-between items-center opacity-60">
+                  <div>
+                    <div class="font-bold text-white">${s.name}</div>
+                    <div class="text-xs text-slate-400">${s.studentId || "N/A"}</div>
+                  </div>
+                  <div class="text-slate-500 text-sm">
+                    Chưa học
+                  </div>
+                </div>
+              `;
+            });
+
+            html += `
+                </div>
+              </div>
+            `;
+          }
+
+          if (students.length === 0) {
+            html = `
+              <div class="text-center py-8 text-slate-400">
+                <i class="fas fa-users text-6xl mb-4 opacity-50"></i>
+                <p>Chưa có học sinh nào</p>
+              </div>
+            `;
+          }
+
+          $("word-detail-content").innerHTML = html;
+          $("modal-word-detail").classList.remove("hidden");
+        },
+
+        closeWordDetail: () => {
+          $("modal-word-detail").classList.add("hidden");
         },
       };
 
