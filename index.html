@@ -528,6 +528,7 @@
             </div>
           </div>
           <div
+            id="study-nav-buttons"
             class="w-full mt-6 grid grid-cols-5 gap-2 max-w-sm mx-auto shrink-0"
           >
             <button
@@ -1290,9 +1291,10 @@
             );
 
             if (targetWord) {
-              window.session.currentLesson = null; // All words mode
-              // Init với TẤT CẢ từ vựng, nhưng focus vào từ được quét
-              window.studentStudy.init(window.db.words, targetWord.id);
+              window.session.currentLesson = null;
+              window.session.isNFCMode = true; // Flag to indicate NFC mode
+              // Init với CHỈ MỘT từ được quét
+              window.studentStudy.init([targetWord], targetWord.id);
               showScreen("screen-student-study");
               window.session.nfcTarget = null;
               return;
@@ -1309,6 +1311,7 @@
               return;
             }
             window.session.currentLesson = null; // All lessons mode
+            window.session.isNFCMode = false; // Reset NFC mode
             // Load last studied position from localStorage
             const savedIndex = localStorage.getItem("jpd123_lastStudiedIndex");
             const startIndex = savedIndex ? parseInt(savedIndex) : 0;
@@ -1380,6 +1383,7 @@
             return;
           }
           window.session.currentLesson = null;
+          window.session.isNFCMode = false; // Reset NFC mode
           const savedIndex = localStorage.getItem("jpd123_lastStudiedIndex");
           const startIndex = savedIndex ? parseInt(savedIndex) : 0;
           window.studentStudy.init(window.db.words, null, startIndex);
@@ -1638,6 +1642,13 @@
             "jpd123_lastStudiedIndex",
             window.session.currentIndex.toString(),
           );
+
+          // Hide navigation buttons if in NFC mode
+          if (window.session.isNFCMode) {
+            $("study-nav-buttons").style.display = "none";
+          } else {
+            $("study-nav-buttons").style.display = "grid";
+          }
 
           $("fc-current-index").innerText = window.session.currentIndex + 1;
           $("fc-total").innerText = window.session.studyList.length;
