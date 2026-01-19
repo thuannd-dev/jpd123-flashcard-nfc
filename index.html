@@ -632,16 +632,14 @@
             <div
               class="bg-slate-900/50 backdrop-blur p-6 rounded-2xl border border-slate-700 mb-6"
             >
-              <div
-                id="quiz-furigana"
-                class="text-xl md:text-2xl font-jp text-purple-300 mb-2"
-              ></div>
               <h2
                 id="quiz-question"
-                class="text-4xl md:text-5xl font-jp font-bold text-white"
+                class="text-3xl md:text-4xl font-jp font-bold text-white"
               ></h2>
             </div>
-            <p class="text-slate-400 text-sm">Chọn nghĩa tiếng Việt đúng</p>
+            <p class="text-slate-400 text-sm">
+              Chọn từ thích hợp để điền vào chỗ trống
+            </p>
           </div>
 
           <!-- Answer Options -->
@@ -649,34 +647,34 @@
             <button
               id="quiz-option-0"
               onclick="studentStudy.checkAnswer(0)"
-              class="quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center"
+              class="quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-center min-h-[100px] flex items-center justify-center"
             >
-              <span class="font-bold text-2xl text-purple-400 mr-4">A.</span>
-              <span id="quiz-text-0" class="text-lg"></span>
+              <span class="font-bold text-2xl text-purple-400 mr-3">A.</span>
+              <span id="quiz-text-0" class="text-2xl font-jp font-bold"></span>
             </button>
             <button
               id="quiz-option-1"
               onclick="studentStudy.checkAnswer(1)"
-              class="quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center"
+              class="quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-center min-h-[100px] flex items-center justify-center"
             >
-              <span class="font-bold text-2xl text-purple-400 mr-4">B.</span>
-              <span id="quiz-text-1" class="text-lg"></span>
+              <span class="font-bold text-2xl text-purple-400 mr-3">B.</span>
+              <span id="quiz-text-1" class="text-2xl font-jp font-bold"></span>
             </button>
             <button
               id="quiz-option-2"
               onclick="studentStudy.checkAnswer(2)"
-              class="quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center"
+              class="quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-center min-h-[100px] flex items-center justify-center"
             >
-              <span class="font-bold text-2xl text-purple-400 mr-4">C.</span>
-              <span id="quiz-text-2" class="text-lg"></span>
+              <span class="font-bold text-2xl text-purple-400 mr-3">C.</span>
+              <span id="quiz-text-2" class="text-2xl font-jp font-bold"></span>
             </button>
             <button
               id="quiz-option-3"
               onclick="studentStudy.checkAnswer(3)"
-              class="quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center"
+              class="quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-center min-h-[100px] flex items-center justify-center"
             >
-              <span class="font-bold text-2xl text-purple-400 mr-4">D.</span>
-              <span id="quiz-text-3" class="text-lg"></span>
+              <span class="font-bold text-2xl text-purple-400 mr-3">D.</span>
+              <span id="quiz-text-3" class="text-2xl font-jp font-bold"></span>
             </button>
           </div>
 
@@ -1963,9 +1961,35 @@
           i.classList.toggle("far");
         },
 
+        // Helper function to detect word grammar type
+        getWordType: (word) => {
+          const kanji = word.kanji;
+          const furigana = word.furigana || "";
+
+          // Verb detection (ends with る, う, く, す, つ, ぬ, ぶ, む, ぐ)
+          if (furigana.match(/[るうくすつぬぶむぐ]$/)) return "verb";
+
+          // い-adjective (ends with い but not ない)
+          if (furigana.match(/[^な]い$/) && !furigana.match(/ない$/))
+            return "i-adj";
+
+          // な-adjective (common patterns)
+          if (word.vi && (word.vi.includes("な") || kanji.match(/[的静]$/)))
+            return "na-adj";
+
+          // Everything else is noun
+          return "noun";
+        },
+
         startQuiz: () => {
           const currentWord =
             window.session.studyList[window.session.currentIndex];
+
+          // Check if current word has examples
+          if (!currentWord.examples || currentWord.examples.length === 0) {
+            showToast("Từ này chưa có câu ví dụ để làm quiz!");
+            return;
+          }
 
           // In NFC mode, use all words from database for quiz options
           // In normal mode, use current study list
@@ -1979,11 +2003,36 @@
             return;
           }
 
-          // Generate wrong answers (3 random different words)
-          const wrongWords = allWords
-            .filter((w) => w.id !== currentWord.id)
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 3);
+          // Pick random example from current word
+          const randomExample =
+            currentWord.examples[
+              Math.floor(Math.random() * currentWord.examples.length)
+            ];
+
+          // Create sentence with blank by replacing kanji with ___
+          const sentenceWithBlank = randomExample.jp.replace(
+            currentWord.kanji,
+            "___",
+          );
+
+          // Get word type for grammar-based filtering
+          const wordType = window.studentStudy.getWordType(currentWord);
+
+          // Filter words with similar grammar structure
+          const similarWords = allWords.filter(
+            (w) =>
+              w.id !== currentWord.id &&
+              window.studentStudy.getWordType(w) === wordType,
+          );
+
+          // If not enough similar words, fallback to random
+          const wrongWords =
+            similarWords.length >= 3
+              ? similarWords.sort(() => Math.random() - 0.5).slice(0, 3)
+              : allWords
+                  .filter((w) => w.id !== currentWord.id)
+                  .sort(() => Math.random() - 0.5)
+                  .slice(0, 3);
 
           // Create 4 options and shuffle
           const options = [currentWord, ...wrongWords].sort(
@@ -1996,12 +2045,19 @@
           );
           window.session.quizOptions = options;
 
-          // Render quiz
-          $("quiz-furigana").innerText = currentWord.furigana || "";
-          $("quiz-question").innerText = currentWord.kanji;
+          // Strip ruby tags for cleaner display and highlight blank
+          const cleanSentence = sentenceWithBlank
+            .replace(/<\/?ruby>|<\/?rt>/g, "")
+            .replace(
+              /___/g,
+              '<span style="display:inline-block;min-width:100px;height:1.2em;border-bottom:4px solid #a78bfa;margin:0 8px 10px 8px;vertical-align:bottom;background:rgba(167,139,250,0.1);padding:0 8px;border-radius:4px;">　</span>',
+            );
+
+          // Render fill-in-the-blank quiz
+          $("quiz-question").innerHTML = cleanSentence;
 
           options.forEach((word, index) => {
-            $(`quiz-text-${index}`).innerText = word.vi;
+            $(`quiz-text-${index}`).innerText = word.kanji;
             const btn = $(`quiz-option-${index}`);
             btn.disabled = false;
             btn.className =
