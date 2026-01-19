@@ -884,6 +884,23 @@
       };
 
       const compressImage = (file, callback) => {
+        // Check if file is a GIF - preserve animation by skipping Canvas compression
+        if (file.type === "image/gif") {
+          // Check size limit for GIFs (5MB)
+          if (file.size > 5 * 1024 * 1024) {
+            showToast("File GIF quá lớn! Vui lòng chọn file nhỏ hơn 5MB.");
+            return;
+          }
+          // Read GIF directly without compression to preserve animation
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            callback(e.target.result);
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
+
+        // For other image formats (JPEG, PNG, etc.), use Canvas compression
         const reader = new FileReader();
         reader.onload = (e) => {
           const img = new Image();
