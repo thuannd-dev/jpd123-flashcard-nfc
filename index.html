@@ -101,9 +101,9 @@
         height: 180px;
       }
       .card-image-back {
-        width: 70%;
-        max-width: 70%;
-        height: 90px;
+        width: 100%;
+        max-width: 90%;
+        height: 200px;
         border-radius: 12px;
       }
       .kanji-glow {
@@ -731,6 +731,7 @@
               <span class="text-purple-300 text-sm font-bold"
                 >Bài tập trắc nghiệm</span
               >
+              <span id="quiz-progress" class="text-purple-400 text-xs ml-2"></span>
             </div>
             <div
               class="bg-slate-900/50 backdrop-blur p-6 rounded-2xl border border-slate-700 mb-6"
@@ -1029,7 +1030,7 @@
             <div class="border-t border-slate-800 pt-3">
               <div class="flex justify-between items-center mb-2">
                 <label class="text-xs text-slate-500 font-bold"
-                  >5 Câu Ví dụ</label
+                  >2 Câu Ví dụ</label
                 >
                 <button
                   type="button"
@@ -1063,105 +1064,21 @@
                 <span class="text-xs text-slate-400">📝 Quiz tùy chỉnh</span>
               </div>
 
-              <div id="custom-quiz-form" class="hidden space-y-3 mt-3">
-                <div>
-                  <label class="block text-sm font-bold text-slate-300 mb-1"
-                    >Câu hỏi:</label
-                  >
-                  <textarea
-                    id="custom-quiz-question"
-                    class="w-full bg-slate-700 text-white p-2 rounded border border-slate-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-sm"
-                    rows="2"
-                    placeholder="Nhập câu hỏi (mặc định dùng Kanji nếu bỏ trống)"
-                  ></textarea>
-                </div>
-
-                <div class="space-y-2">
-                  <label class="block text-sm font-bold text-slate-300"
-                    >4 đáp án (chọn đáp án đúng):</label
-                  >
-
-                  <div class="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correct-answer"
-                      value="0"
-                      id="correct-0"
-                      class="w-4 h-4 text-purple-600"
-                    />
-                    <label for="correct-0" class="text-purple-400 font-bold"
-                      >A.</label
-                    >
-                    <input
-                      type="text"
-                      id="custom-quiz-option-0"
-                      class="flex-1 bg-slate-700 text-white p-2 rounded border border-slate-600 focus:border-purple-500 text-sm"
-                      placeholder="Đáp án A"
-                    />
-                  </div>
-
-                  <div class="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correct-answer"
-                      value="1"
-                      id="correct-1"
-                      class="w-4 h-4 text-purple-600"
-                    />
-                    <label for="correct-1" class="text-purple-400 font-bold"
-                      >B.</label
-                    >
-                    <input
-                      type="text"
-                      id="custom-quiz-option-1"
-                      class="flex-1 bg-slate-700 text-white p-2 rounded border border-slate-600 focus:border-purple-500 text-sm"
-                      placeholder="Đáp án B"
-                    />
-                  </div>
-
-                  <div class="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correct-answer"
-                      value="2"
-                      id="correct-2"
-                      class="w-4 h-4 text-purple-600"
-                    />
-                    <label for="correct-2" class="text-purple-400 font-bold"
-                      >C.</label
-                    >
-                    <input
-                      type="text"
-                      id="custom-quiz-option-2"
-                      class="flex-1 bg-slate-700 text-white p-2 rounded border border-slate-600 focus:border-purple-500 text-sm"
-                      placeholder="Đáp án C"
-                    />
-                  </div>
-
-                  <div class="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correct-answer"
-                      value="3"
-                      id="correct-3"
-                      class="w-4 h-4 text-purple-600"
-                    />
-                    <label for="correct-3" class="text-purple-400 font-bold"
-                      >D.</label
-                    >
-                    <input
-                      type="text"
-                      id="custom-quiz-option-3"
-                      class="flex-1 bg-slate-700 text-white p-2 rounded border border-slate-600 focus:border-purple-500 text-sm"
-                      placeholder="Đáp án D"
-                    />
-                  </div>
-                </div>
-
-                <p class="text-xs text-slate-400 italic">
-                  <i class="fas fa-info-circle"></i> Đáp án sẽ được shuffle tự
-                  động khi học sinh làm quiz
+              <div id="custom-quiz-form" class="hidden space-y-4 mt-3 max-h-[60vh] overflow-y-auto pr-2">
+                <p class="text-xs text-slate-400 italic bg-purple-900/20 p-2 rounded border border-purple-500/30">
+                  <i class="fas fa-info-circle"></i> Tạo 5 câu hỏi - Học sinh sẽ làm tuần tự và thấy kết quả tổng
                 </p>
+                
+                <!-- Quiz questions container - will be populated by JS -->
+                <div id="quiz-questions-container"></div>
+                
+                <button
+                  type="button"
+                  onclick="teacherMgr.addQuizQuestion()"
+                  class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded text-sm font-bold"
+                >
+                  <i class="fas fa-plus mr-1"></i> Thêm câu hỏi (tối đa 5)
+                </button>
               </div>
             </div>
           </div>
@@ -1512,7 +1429,7 @@
 
           showToast("Đang tạo ví dụ...");
           try {
-            const promptText = `Generate 5 simple Japanese example sentences for "${k}" (Meaning: ${m}). Return JSON array: [{"jp":"sentence with ruby","vi":"meaning"}]. RULES: Wrap Kanji with <ruby>Kanji<rt>kana</rt></ruby>.`;
+            const promptText = `Generate 2 simple Japanese example sentences for "${k}" (Meaning: ${m}). Return JSON array: [{"jp":"sentence with ruby","vi":"meaning"}]. RULES: Wrap Kanji with <ruby>Kanji<rt>kana</rt></ruby>.`;
             let raw = await window.geminiService.callGemini(promptText);
 
             const jsonMatch = raw.match(/\[[\s\S]*\]/);
@@ -1926,11 +1843,8 @@
           const customQuizSection = $("custom-quiz-form");
           customQuizCheckbox.checked = false;
           customQuizSection.classList.add("hidden");
-          $("custom-quiz-question").value = "";
-          for (let i = 0; i < 4; i++) {
-            $(`custom-quiz-option-${i}`).value = "";
-            $(`correct-${i}`).checked = false;
-          }
+          window.teacherMgr.quizQuestions = [];
+          window.teacherMgr.renderQuizQuestions();
 
           $("modal-word").classList.remove("hidden");
         },
@@ -1964,39 +1878,104 @@
           setTimeout(() => {
             const customQuizCheckbox = $("custom-quiz-enabled");
             const customQuizSection = $("custom-quiz-form");
-            if (w.customQuiz?.enabled) {
+            if (w.customQuiz?.enabled && w.customQuiz.questions) {
               customQuizCheckbox.checked = true;
               customQuizSection.classList.remove("hidden");
-              $("custom-quiz-question").value = w.customQuiz.question || "";
-
-              // Populate 4 options and mark correct answer
-              for (let i = 0; i < 4; i++) {
-                const option = w.customQuiz.options?.[i];
-                if (option) {
-                  $(`custom-quiz-option-${i}`).value = option.text || "";
-                  if (option.isCorrect) {
-                    const radio = $(`correct-${i}`);
-                    if (radio) radio.checked = true;
-                  }
-                }
-              }
+              window.teacherMgr.quizQuestions = w.customQuiz.questions.map(q => ({...q}));
+              window.teacherMgr.renderQuizQuestions();
             } else {
               customQuizCheckbox.checked = false;
               customQuizSection.classList.add("hidden");
-              $("custom-quiz-question").value = "";
-              for (let i = 0; i < 4; i++) {
-                $(`custom-quiz-option-${i}`).value = "";
-                const radio = $(`correct-${i}`);
-                if (radio) radio.checked = false;
-              }
+              window.teacherMgr.quizQuestions = [];
+              window.teacherMgr.renderQuizQuestions();
             }
           }, 0);
+        },
+
+        // Quiz questions management
+        quizQuestions: [],
+        
+        addQuizQuestion: () => {
+          if (window.teacherMgr.quizQuestions.length >= 5) {
+            return showToast("Tối đa 5 câu hỏi!");
+          }
+          window.teacherMgr.quizQuestions.push({
+            question: "",
+            options: [{text: "", isCorrect: false}, {text: "", isCorrect: false}, 
+                     {text: "", isCorrect: false}, {text: "", isCorrect: true}]
+          });
+          window.teacherMgr.renderQuizQuestions();
+        },
+        
+        removeQuizQuestion: (index) => {
+          window.teacherMgr.quizQuestions.splice(index, 1);
+          window.teacherMgr.renderQuizQuestions();
+        },
+        
+        renderQuizQuestions: () => {
+          const container = $("quiz-questions-container");
+          if (!container) return;
+          
+          if (window.teacherMgr.quizQuestions.length === 0) {
+            container.innerHTML = `
+              <div class="text-center py-4 text-slate-400 text-sm">
+                <i class="fas fa-plus-circle text-2xl mb-2"></i>
+                <p>Chưa có câu hỏi nào. Nhấn nút bên dưới để thêm.</p>
+              </div>
+            `;
+            return;
+          }
+          
+          container.innerHTML = window.teacherMgr.quizQuestions.map((q, qIdx) => `
+            <div class="bg-slate-900/50 p-3 rounded-lg border border-purple-500/30 mb-3">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-purple-400 font-bold text-sm">Câu ${qIdx + 1}</span>
+                <button 
+                  type="button"
+                  onclick="teacherMgr.removeQuizQuestion(${qIdx})"
+                  class="text-red-400 hover:text-red-300 text-xs"
+                >
+                  <i class="fas fa-trash"></i> Xóa
+                </button>
+              </div>
+              
+              <textarea
+                id="quiz-q-${qIdx}"
+                class="w-full bg-slate-700 text-white p-2 rounded border border-slate-600 text-sm mb-2"
+                rows="2"
+                placeholder="Nhập câu hỏi..."
+                onchange="teacherMgr.quizQuestions[${qIdx}].question = this.value"
+              >${q.question || ""}</textarea>
+              
+              <div class="space-y-1">
+                ${q.options.map((opt, optIdx) => `
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="correct-q${qIdx}"
+                      ${opt.isCorrect ? 'checked' : ''}
+                      onchange="teacherMgr.quizQuestions[${qIdx}].options.forEach((o,i) => o.isCorrect = i === ${optIdx})"
+                      class="w-4 h-4"
+                    />
+                    <span class="text-purple-400 text-xs font-bold w-6">${String.fromCharCode(65 + optIdx)}.</span>
+                    <input
+                      type="text"
+                      value="${opt.text || ""}"
+                      class="flex-1 bg-slate-700 text-white p-1.5 rounded border border-slate-600 text-xs"
+                      placeholder="Đáp án ${String.fromCharCode(65 + optIdx)}"
+                      onchange="teacherMgr.quizQuestions[${qIdx}].options[${optIdx}].text = this.value"
+                    />
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('');
         },
 
         renderExampleInputs: (examples = []) => {
           const container = $("example-inputs-container");
           container.innerHTML = "";
-          for (let i = 0; i < 5; i++) {
+          for (let i = 0; i < 2; i++) {
             const ex = examples[i] || {};
             const jpVal = (ex.jp || "").replace(/"/g, "&quot;");
             const viVal = (ex.vi || "").replace(/"/g, "&quot;");
@@ -2030,7 +2009,7 @@
             image: $("inp-image-base64").value,
             examples: [],
           };
-          for (let i = 0; i < 5; i++) {
+          for (let i = 0; i < 2; i++) {
             const j = $(`inp-ex-jp-${i}`).value;
             const v = $(`inp-ex-vi-${i}`).value;
             if (j || v) nw.examples.push({ jp: j, vi: v });
@@ -2039,44 +2018,38 @@
           // Save custom quiz if enabled
           const quizEnabled = $("custom-quiz-enabled").checked;
           if (quizEnabled) {
-            const question = $("custom-quiz-question").value.trim();
-            const options = [];
-            let correctIndex = -1;
-
-            // Get correct answer index from radio buttons
-            const correctRadio = document.querySelector(
-              'input[name="correct-answer"]:checked',
-            );
-            if (correctRadio) {
-              correctIndex = parseInt(correctRadio.value);
+            const questions = window.teacherMgr.quizQuestions;
+            
+            // Validate: must have at least 1 question, max 5
+            if (questions.length === 0) {
+              return alert("Vui lòng thêm ít nhất 1 câu hỏi cho quiz!");
             }
-
-            // Collect all 4 options
-            for (let i = 0; i < 4; i++) {
-              const text = $(`custom-quiz-option-${i}`).value.trim();
-              options.push({
-                text: text,
-                isCorrect: i === correctIndex,
-              });
-            }
-
-            // Validate: must have at least one correct answer and all 4 options filled
-            const allOptionsFilled = options.every((opt) => opt.text !== "");
-            const hasCorrectAnswer = correctIndex !== -1;
-
-            if (allOptionsFilled && hasCorrectAnswer) {
-              nw.customQuiz = {
-                enabled: true,
-                question: question || nw.kanji, // Use kanji if no custom question
-                options: options,
-              };
-            } else if (allOptionsFilled || hasCorrectAnswer || question) {
-              // Some fields filled but incomplete - warn user
-              return alert(
-                "Quiz tùy chỉnh chưa hoàn chỉnh! Vui lòng điền đầy đủ 4 đáp án và chọn đáp án đúng.",
-              );
-            }
-            // If nothing filled, just don't save custom quiz (disabled state)
+            
+            // Validate each question
+            const allValid = questions.every((q, idx) => {
+              if (!q.question.trim()) {
+                alert(`Câu ${idx + 1}: Vui lòng nhập câu hỏi!`);
+                return false;
+              }
+              const allOptionsFilled = q.options.every(opt => opt.text.trim());
+              if (!allOptionsFilled) {
+                alert(`Câu ${idx + 1}: Vui lòng điền đầy đủ 4 đáp án!`);
+                return false;
+              }
+              const hasCorrect = q.options.some(opt => opt.isCorrect);
+              if (!hasCorrect) {
+                alert(`Câu ${idx + 1}: Vui lòng chọn đáp án đúng!`);
+                return false;
+              }
+              return true;
+            });
+            
+            if (!allValid) return;
+            
+            nw.customQuiz = {
+              enabled: true,
+              questions: questions
+            };
           }
 
           showToast("Đang lưu...");
@@ -2480,44 +2453,29 @@
           const currentWord =
             window.session.studyList[window.session.currentIndex];
 
-          // Check if word has custom quiz enabled
-          if (currentWord.customQuiz?.enabled) {
-            const cq = currentWord.customQuiz;
+          // Check if word has custom quiz enabled with multiple questions
+          if (currentWord.customQuiz?.enabled && currentWord.customQuiz.questions) {
+            const questions = currentWord.customQuiz.questions;
 
             // Validate custom quiz data
-            const hasAllOptions =
-              cq.options?.length === 4 &&
-              cq.options.every((opt) => opt.text?.trim());
-            const hasCorrectAnswer = cq.options?.some((opt) => opt.isCorrect);
+            const allValid = questions.every(q => 
+              q.options?.length === 4 &&
+              q.options.every(opt => opt.text?.trim()) &&
+              q.options.some(opt => opt.isCorrect)
+            );
 
-            if (hasAllOptions && hasCorrectAnswer) {
-              // Use custom quiz with shuffled options
-              const shuffledOptions = [...cq.options].sort(
-                () => Math.random() - 0.5,
-              );
-
-              // Save quiz state
-              window.session.quizCorrectIndex = shuffledOptions.findIndex(
-                (opt) => opt.isCorrect,
-              );
-              window.session.quizOptions = shuffledOptions;
+            if (allValid && questions.length > 0) {
+              // Initialize multi-question quiz
               window.session.isCustomQuiz = true;
-
-              // Render custom quiz
-              $("quiz-furigana").innerText = currentWord.furigana || "";
-              $("quiz-question").innerText = cq.question || currentWord.kanji;
-
-              shuffledOptions.forEach((option, index) => {
-                $(`quiz-text-${index}`).innerText = option.text;
-                const btn = $(`quiz-option-${index}`);
-                btn.disabled = false;
-                btn.className =
-                  "quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center";
-              });
-
-              $("quiz-continue-btn").classList.add("hidden");
-
-              // Transition from flashcard to quiz
+              window.session.quizQuestions = questions;
+              window.session.currentQuizIndex = 0;
+              window.session.quizScore = 0;
+              window.session.quizAnswers = [];
+              
+              // Render first question
+              studentStudy.renderQuizQuestion();
+              
+              // Transition to quiz screen
               $("screen-student-study").classList.add("fade-out");
               setTimeout(() => {
                 $("screen-student-study").classList.add("hidden");
@@ -2530,7 +2488,6 @@
               }, 300);
               return;
             } else {
-              // Custom quiz data invalid - fallback to auto-generate
               showToast("⚠️ Quiz tùy chỉnh không hợp lệ, dùng câu hỏi tự động");
             }
           }
@@ -2594,6 +2551,34 @@
           }, 300);
         },
 
+        renderQuizQuestion: () => {
+          const q = window.session.quizQuestions[window.session.currentQuizIndex];
+          const currentWord = window.session.studyList[window.session.currentIndex];
+          
+          // Shuffle options
+          const shuffledOptions = [...q.options].sort(() => Math.random() - 0.5);
+          window.session.quizCorrectIndex = shuffledOptions.findIndex(opt => opt.isCorrect);
+          window.session.quizOptions = shuffledOptions;
+          
+          // Update progress indicator
+          const progress = `Câu ${window.session.currentQuizIndex + 1}/${window.session.quizQuestions.length}`;
+          $("quiz-progress").innerText = progress;
+          
+          // Render question
+          $("quiz-furigana").innerText = currentWord.furigana || "";
+          $("quiz-question").innerText = q.question;
+          
+          // Render options
+          shuffledOptions.forEach((option, index) => {
+            $(`quiz-text-${index}`).innerText = option.text;
+            const btn = $(`quiz-option-${index}`);
+            btn.disabled = false;
+            btn.className = "quiz-option bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-xl border-2 border-slate-600 transition-all duration-300 text-left min-h-[100px] flex items-center";
+          });
+          
+          $("quiz-continue-btn").classList.add("hidden");
+        },
+
         checkAnswer: (selectedIndex) => {
           const correctIndex = window.session.quizCorrectIndex;
           const isCorrect = selectedIndex === correctIndex;
@@ -2608,19 +2593,97 @@
             $(`quiz-option-${selectedIndex}`).className =
               "quiz-option bg-green-500 border-green-400 text-white p-6 rounded-xl border-2 transition-all duration-300 text-left min-h-[100px] flex items-center";
 
-            // Confetti effect
+            // Confetti effect for multi-question quiz only on last question
+            if (window.session.isCustomQuiz) {
+              window.session.quizScore++;
+            } else {
+              confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+              });
+            }
+
+            // Update progress to mastered for single auto-generated quiz
+            if (!window.session.isCustomQuiz) {
+              const currentWord = window.session.studyList[window.session.currentIndex];
+              const email = window.session.user.email;
+
+              // Only save progress for non-guest users
+              if (email !== "guest@nfc.temp") {
+                if (!window.db.progress[email]) window.db.progress[email] = {};
+                window.db.progress[email][currentWord.id] = {
+                  status: "mastered",
+                  lastReviewed: Date.now(),
+                };
+                window.progressCloud.saveStudentProgress({
+                  email: window.session.user.email,
+                  name: window.session.user.name,
+                  className: window.session.user.className || "",
+                  progress: window.db.progress[email],
+                });
+              }
+            }
+
+            showToast("Chính xác! 🎉");
+          } else {
+            // Wrong answer - red + shake + show correct
+            const selectedBtn = $(`quiz-option-${selectedIndex}`);
+            selectedBtn.className =
+              "quiz-option bg-red-500 border-red-400 text-white p-6 rounded-xl border-2 transition-all duration-300 text-left min-h-[100px] flex items-center shake";
+
+            // Show correct answer in green
+            setTimeout(() => {
+              $(`quiz-option-${correctIndex}`).className =
+                "quiz-option bg-green-500 border-green-400 text-white p-6 rounded-xl border-2 transition-all duration-300 text-left min-h-[100px] flex items-center";
+            }, 500);
+
+            showToast("Sai rồi!");
+          }
+          
+          // Store answer for multi-question quiz
+          if (window.session.isCustomQuiz) {
+            window.session.quizAnswers.push({
+              questionIndex: window.session.currentQuizIndex,
+              isCorrect: isCorrect
+            });
+          }
+
+          // Auto-advance to next question or show results
+          setTimeout(() => {
+            if (window.session.isCustomQuiz && 
+                window.session.currentQuizIndex < window.session.quizQuestions.length - 1) {
+              // More questions - load next
+              window.session.currentQuizIndex++;
+              studentStudy.renderQuizQuestion();
+            } else if (window.session.isCustomQuiz) {
+              // Last question - show final results
+              studentStudy.showQuizResults();
+            } else {
+              // Single question quiz - show continue button
+              $("quiz-continue-btn").classList.remove("hidden");
+            }
+          }, 1500);
+        },
+        
+        showQuizResults: () => {
+          const total = window.session.quizQuestions.length;
+          const score = window.session.quizScore;
+          const percentage = Math.round((score / total) * 100);
+          
+          // Big confetti if score >= 80%
+          if (percentage >= 80) {
             confetti({
-              particleCount: 100,
-              spread: 70,
+              particleCount: 150,
+              spread: 100,
               origin: { y: 0.6 },
             });
-
-            // Update progress to mastered for correct answer
-            const currentWord =
-              window.session.studyList[window.session.currentIndex];
+          }
+          
+          // Update progress to mastered if score is good
+          if (percentage >= 60) {
+            const currentWord = window.session.studyList[window.session.currentIndex];
             const email = window.session.user.email;
-
-            // Only save progress for non-guest users
             if (email !== "guest@nfc.temp") {
               if (!window.db.progress[email]) window.db.progress[email] = {};
               window.db.progress[email][currentWord.id] = {
@@ -2634,30 +2697,38 @@
                 progress: window.db.progress[email],
               });
             }
-
-            showToast("Chính xác! 🎉 Đã lưu vào đã thuộc!");
-          } else {
-            // Wrong answer - red + shake + show correct
-            const selectedBtn = $(`quiz-option-${selectedIndex}`);
-            selectedBtn.className =
-              "quiz-option bg-red-500 border-red-400 text-white p-6 rounded-xl border-2 transition-all duration-300 text-left min-h-[100px] flex items-center shake";
-
-            // Show correct answer in green
-            setTimeout(() => {
-              $(`quiz-option-${correctIndex}`).className =
-                "quiz-option bg-green-500 border-green-400 text-white p-6 rounded-xl border-2 transition-all duration-300 text-left min-h-[100px] flex items-center";
-            }, 500);
-
-            showToast("Sai rồi! Đáp án đúng đã được hiển thị");
           }
-
-          // Show continue button
-          setTimeout(() => {
-            $("quiz-continue-btn").classList.remove("hidden");
-          }, 1000);
+          
+          // Show results screen
+          const resultColor = percentage >= 80 ? 'text-green-400' : percentage >= 60 ? 'text-yellow-400' : 'text-red-400';
+          const resultEmoji = percentage >= 80 ? '🎉' : percentage >= 60 ? '👍' : '📚';
+          
+          $("quiz-furigana").innerText = "";
+          $("quiz-question").innerHTML = `
+            <div class="text-center">
+              <div class="${resultColor} text-6xl mb-4">${resultEmoji}</div>
+              <div class="text-3xl mb-2">Kết quả</div>
+              <div class="${resultColor} text-5xl font-bold mb-4">${score}/${total}</div>
+              <div class="text-2xl text-slate-300">${percentage}% đúng</div>
+            </div>
+          `;
+          
+          // Hide options, show continue
+          for (let i = 0; i < 4; i++) {
+            $(`quiz-option-${i}`).style.display = 'none';
+          }
+          $("quiz-continue-btn").classList.remove("hidden");
         },
 
         exitQuiz: () => {
+          // Reset quiz options visibility
+          for (let i = 0; i < 4; i++) {
+            $(`quiz-option-${i}`).style.display = 'flex';
+          }
+          
+          // Reset progress indicator
+          $("quiz-progress").innerText = "";
+          
           // Transition from quiz back to flashcard
           $("screen-quiz").classList.add("fade-out");
           setTimeout(() => {
@@ -2673,14 +2744,12 @@
                 $("screen-student-study").classList.remove("fade-in");
               }, 300);
             } else {
-              // In normal mode, move to next card
-              if (
-                window.session.currentIndex <
-                window.session.studyList.length - 1
-              ) {
+              // In normal mode, move to next card only for auto-generated quiz
+              if (!window.session.isCustomQuiz && 
+                  window.session.currentIndex < window.session.studyList.length - 1) {
                 window.session.currentIndex++;
                 window.studentStudy.render();
-              } else {
+              } else if (!window.session.isCustomQuiz) {
                 showToast("Đã hết từ vựng!");
               }
               $("screen-student-study").classList.remove("hidden");
