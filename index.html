@@ -2984,14 +2984,12 @@
           const wordStats = words.map((w) => {
             let masteredCount = 0;
             let reviewCount = 0;
-            let learningCount = 0;
 
             students.forEach((s) => {
               const progress = s.progress || {};
               if (progress[w.id]) {
                 if (progress[w.id].status === "mastered") masteredCount++;
                 else if (progress[w.id].status === "review") reviewCount++;
-                else if (progress[w.id].status === "learning") learningCount++;
               }
             });
 
@@ -3005,7 +3003,6 @@
               word: w,
               masteredCount,
               reviewCount,
-              learningCount,
               masteredPercent,
               totalStudents,
             };
@@ -3038,11 +3035,7 @@
                   <div class="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full" style="width: ${ws.masteredPercent}%"></div>
                 </div>
                 
-                <div class="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div class="bg-slate-900/50 p-2 rounded">
-                    <div class="text-blue-400 font-bold">${ws.learningCount}</div>
-                    <div class="text-slate-500">Đang học</div>
-                  </div>
+                <div class="grid grid-cols-2 gap-2 text-center text-xs">
                   <div class="bg-slate-900/50 p-2 rounded">
                     <div class="text-orange-400 font-bold">${ws.reviewCount}</div>
                     <div class="text-slate-500">Cần ôn</div>
