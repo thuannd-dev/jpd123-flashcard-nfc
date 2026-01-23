@@ -375,30 +375,37 @@
                   style="width: 0%"
                 ></div>
               </div>
-              <div class="grid grid-cols-3 gap-2 text-center text-xs">
-                <div class="bg-slate-800/50 p-2 rounded-lg">
-                  <div
-                    class="text-blue-400 font-bold text-lg"
-                    id="dash-learning"
-                  >
-                    0
-                  </div>
-                  <div>Đang học</div>
-                </div>
-                <div class="bg-slate-800/50 p-2 rounded-lg">
+              <div class="grid grid-cols-2 gap-4 text-center text-xs">
+                <div
+                  onclick="window.app.viewWordsByStatus('review')"
+                  class="bg-slate-800/50 p-3 rounded-lg cursor-pointer hover:bg-slate-700/50 transition-colors border border-transparent hover:border-orange-500/30 group"
+                >
                   <div
                     class="text-orange-400 font-bold text-lg"
                     id="dash-review"
                   >
                     0
                   </div>
-                  <div>Cần ôn</div>
+                  <div class="flex items-center justify-center gap-1">
+                    <span>Cần ôn</span>
+                    <i
+                      class="fas fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    ></i>
+                  </div>
                 </div>
-                <div class="bg-slate-800/50 p-2 rounded-lg">
+                <div
+                  onclick="window.app.viewWordsByStatus('mastered')"
+                  class="bg-slate-800/50 p-3 rounded-lg cursor-pointer hover:bg-slate-700/50 transition-colors border border-transparent hover:border-green-500/30 group"
+                >
                   <div class="text-green-400 font-bold text-lg" id="dash-done">
                     0
                   </div>
-                  <div>Thuộc</div>
+                  <div class="flex items-center justify-center gap-1">
+                    <span>Thuộc</span>
+                    <i
+                      class="fas fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    ></i>
+                  </div>
                 </div>
               </div>
             </div>
@@ -445,18 +452,11 @@
               Tất cả (<span id="count-all">0</span>)
             </button>
             <button
-              onclick="questionList.filterByStatus('learning')"
-              id="filter-learning"
-              class="px-4 py-2 rounded-full bg-slate-800 text-slate-400 font-bold text-sm whitespace-nowrap border border-slate-700"
-            >
-              Đang học (<span id="count-learning">0</span>)
-            </button>
-            <button
               onclick="questionList.filterByStatus('review')"
               id="filter-review"
               class="px-4 py-2 rounded-full bg-slate-800 text-slate-400 font-bold text-sm whitespace-nowrap border border-slate-700"
             >
-              Ôn lại (<span id="count-review">0</span>)
+              Cần ôn (<span id="count-review">0</span>)
             </button>
             <button
               onclick="questionList.filterByStatus('mastered')"
@@ -1507,10 +1507,36 @@
         if (u) {
           const user = JSON.parse(u);
           const safeEmail = user.email.replace(/\./g, ",");
+
+          // Load from localStorage first for instant display
+          const cachedProgress = localStorage.getItem(
+            `jpd123_progress_${safeEmail}`,
+          );
+          if (cachedProgress) {
+            window.db.progress = { [user.email]: JSON.parse(cachedProgress) };
+            if (window.session.user?.role === "student")
+              app.renderStudentDashboardStats();
+          } else {
+            // Initialize empty progress if no cache
+            window.db.progress = { [user.email]: {} };
+          }
+
+          // Mark as loaded immediately (either from cache or empty)
+          window.db.progressLoaded = true;
+
+          // Then listen to Firebase for real-time updates
           dbRef
             .child("progress_detail/" + safeEmail)
             .on("value", (snapshot) => {
-              window.db.progress = { [user.email]: snapshot.val() || {} };
+              const progressData = snapshot.val() || {};
+              window.db.progress = { [user.email]: progressData };
+
+              // Cache to localStorage
+              localStorage.setItem(
+                `jpd123_progress_${safeEmail}`,
+                JSON.stringify(progressData),
+              );
+
               if (window.session.user?.role === "student")
                 app.renderStudentDashboardStats();
             });
@@ -1541,6 +1567,14 @@
       window.progressCloud = {
         saveStudentProgress: async (student) => {
           const safeEmail = student.email.replace(/\./g, ",");
+
+          // Save to localStorage for offline access
+          localStorage.setItem(
+            `jpd123_progress_${safeEmail}`,
+            JSON.stringify(student.progress),
+          );
+
+          // Save to Firebase
           await dbRef.child("progress_all/" + safeEmail).set(student);
           await dbRef
             .child("progress_detail/" + safeEmail)
@@ -1608,6 +1642,33 @@
                 "jpd123_user",
                 JSON.stringify(window.session.user),
               );
+
+              // Initialize progress for new user
+              const safeEmail = eVal.replace(/\./g, ",");
+              const cachedProgress = localStorage.getItem(
+                `jpd123_progress_${safeEmail}`,
+              );
+              if (cachedProgress) {
+                window.db.progress = { [eVal]: JSON.parse(cachedProgress) };
+              } else {
+                window.db.progress = { [eVal]: {} };
+              }
+              window.db.progressLoaded = true;
+
+              // Setup Firebase listener for this user
+              dbRef
+                .child("progress_detail/" + safeEmail)
+                .on("value", (snapshot) => {
+                  const progressData = snapshot.val() || {};
+                  window.db.progress = { [eVal]: progressData };
+                  localStorage.setItem(
+                    `jpd123_progress_${safeEmail}`,
+                    JSON.stringify(progressData),
+                  );
+                  if (window.session.user?.role === "student")
+                    app.renderStudentDashboardStats();
+                });
+
               window.app.checkRedirect();
             }, 400);
           };
@@ -1645,6 +1706,11 @@
             !window.session.hasVisitedDashboard
           ) {
             if (window.db.words.length === 0) {
+              setTimeout(window.app.checkRedirect, 500);
+              return;
+            }
+            // Wait for progress to load before auto-starting
+            if (!window.db.progressLoaded) {
               setTimeout(window.app.checkRedirect, 500);
               return;
             }
@@ -1700,16 +1766,29 @@
           $("stats-card").classList.remove("hidden");
           $("continue-study-btn").classList.remove("hidden");
 
-          let s = { l: 0, r: 0, m: 0 };
+          let s = { r: 0, m: 0 };
           const email = window.session.user.email;
-          if (window.db.progress[email]) {
+
+          // Try to load from localStorage if not in memory
+          if (!window.db.progress || !window.db.progress[email]) {
+            const safeEmail = email.replace(/\./g, ",");
+            const cachedProgress = localStorage.getItem(
+              `jpd123_progress_${safeEmail}`,
+            );
+            if (cachedProgress) {
+              window.db.progress = { [email]: JSON.parse(cachedProgress) };
+              window.db.progressLoaded = true;
+            }
+          }
+
+          // Check if progress is loaded
+          if (window.db.progress && window.db.progress[email]) {
             Object.values(window.db.progress[email]).forEach((i) => {
               if (i.status === "mastered") s.m++;
               else if (i.status === "review") s.r++;
-              else s.l++;
             });
           }
-          $("dash-learning").innerText = s.l;
+
           $("dash-review").innerText = s.r;
           $("dash-done").innerText = s.m;
           $("dash-mastered-count").innerText = `${s.m}/${totalWords}`;
@@ -1726,6 +1805,32 @@
           const startIndex = savedIndex ? parseInt(savedIndex) : 0;
           window.studentStudy.init(window.db.words, null, startIndex);
           showScreen("screen-student-study");
+        },
+        viewWordsByStatus: (status) => {
+          if (window.db.words.length === 0) {
+            showToast("Chưa có từ vựng nào!");
+            return;
+          }
+
+          // Check if progress is loaded
+          const email = window.session.user.email;
+          if (!window.db.progress || !window.db.progress[email]) {
+            showToast("Đang tải dữ liệu...");
+            // Retry after a short delay
+            setTimeout(() => {
+              if (window.db.progress && window.db.progress[email]) {
+                window.app.viewWordsByStatus(status);
+              } else {
+                showToast("Không thể tải dữ liệu tiến độ. Vui lòng thử lại.");
+              }
+            }, 1000);
+            return;
+          }
+
+          // Initialize question list and filter by status
+          window.questionList.init(window.db.words, 0);
+          window.questionList.filterByStatus(status);
+          showScreen("screen-question-list");
         },
         openAllVocabulary: () => {
           window.teacherMgr.init(null, window.db.words);
@@ -1752,6 +1857,23 @@
           else showScreen("screen-" + s);
         },
         exitStudyMode: () => {
+          // Force reload progress from localStorage before navigating
+          if (
+            window.session.user &&
+            window.session.user.email !== "guest@nfc.temp"
+          ) {
+            const safeEmail = window.session.user.email.replace(/\./g, ",");
+            const cachedProgress = localStorage.getItem(
+              `jpd123_progress_${safeEmail}`,
+            );
+            if (cachedProgress) {
+              window.db.progress = {
+                [window.session.user.email]: JSON.parse(cachedProgress),
+              };
+              window.db.progressLoaded = true;
+            }
+          }
+
           if (
             window.session.user &&
             window.session.user.email === "guest@nfc.temp"
@@ -2133,16 +2255,16 @@
 
         updateCounts: () => {
           const progress = window.db.progress[window.session.user.email] || {};
-          const counts = { all: 0, learning: 0, review: 0, mastered: 0 };
+          const counts = { all: 0, review: 0, mastered: 0 };
 
           window.questionList.allWords.forEach((word) => {
             counts.all++;
-            const status = progress[word.id] || "learning";
-            counts[status] = (counts[status] || 0) + 1;
+            const status = progress[word.id]?.status || "learning";
+            if (status === "review") counts.review++;
+            else if (status === "mastered") counts.mastered++;
           });
 
           $("count-all").innerText = counts.all;
-          $("count-learning").innerText = counts.learning;
           $("count-review").innerText = counts.review;
           $("count-mastered").innerText = counts.mastered;
         },
@@ -2151,7 +2273,7 @@
           window.questionList.currentFilter = status;
 
           // Update button styles
-          ["all", "learning", "review", "mastered"].forEach((s) => {
+          ["all", "review", "mastered"].forEach((s) => {
             const btn = $("filter-" + s);
             if (s === status) {
               btn.className =
@@ -2169,7 +2291,7 @@
           } else {
             window.questionList.filteredWords =
               window.questionList.allWords.filter((w) => {
-                const wordStatus = progress[w.id] || "learning";
+                const wordStatus = progress[w.id]?.status || "learning";
                 return wordStatus === status;
               });
           }
@@ -2215,7 +2337,7 @@
 
           container.innerHTML = window.questionList.filteredWords
             .map((word, idx) => {
-              const status = progress[word.id] || "learning";
+              const status = progress[word.id]?.status || "learning";
               const statusColors = {
                 learning: "border-blue-500/30 bg-blue-500/5",
                 review: "border-orange-500/30 bg-orange-500/5",
