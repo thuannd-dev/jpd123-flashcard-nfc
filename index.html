@@ -621,7 +621,7 @@
               >
                 <div
                   class="text-center mb-2 pb-2 border-b border-slate-700/50 mt-2 overflow-y-auto shrink-0"
-                  style="max-height: 45%"
+                  style="max-height: 85%"
                 >
                   <div
                     id="fc-image-container-back"
@@ -2533,6 +2533,12 @@
         markStatus: (s) => {
           const w = window.session.studyList[window.session.currentIndex];
           const email = window.session.user.email;
+
+          // Check if w is undefined (no more cards)
+          if (!w) {
+            showToast("Không có thẻ để đánh dấu");
+            return;
+          }
 
           // Skip saving progress for guest users
           if (email === "guest@nfc.temp") {
