@@ -698,11 +698,12 @@
               <i class="fas fa-list mr-2"></i>Danh sách từ vựng
             </button>
 
-            <!-- Mastered + Quiz buttons -->
+            <!-- Review from current + Quiz buttons -->
             <div class="grid grid-cols-2 gap-2">
               <button
-                onclick="studentStudy.markMasteredAndNavigateToList()"
-                class="bg-green-600 h-12 rounded-full text-white font-bold hover:bg-green-500 text-sm"
+                id="btn-nfc-mastered"
+                onclick="studentStudy.markMasteredInNFCMode()"
+                class="bg-green-600 h-12 rounded-full text-white font-bold hover:bg-green-500 text-sm transition-all duration-300"
               >
                 <i class="fas fa-check mr-1"></i>Đã thuộc
               </button>
@@ -1172,7 +1173,7 @@
         const t = $("toast");
         $("toast-msg").innerText = msg;
         t.classList.remove("opacity-0");
-        setTimeout(() => t.classList.add("opacity-0"), 2000);
+        setTimeout(() => t.classList.add("opacity-0"), 3000);
       };
 
       const stripRuby = (text) => {
@@ -2577,18 +2578,26 @@
             }
           }, 300);
         },
-        markMasteredAndNavigateToList: () => {
+        markMasteredInNFCMode: () => {
           const w = window.session.studyList[window.session.currentIndex];
           const email = window.session.user.email;
+          const btn = $("btn-nfc-mastered");
 
-          // For guest users, just show all words list without saving
+          // Visual feedback - disable button and show success state
+          btn.disabled = true;
+          btn.classList.remove("bg-green-600", "hover:bg-green-500");
+          btn.classList.add("bg-green-500", "scale-95");
+          btn.innerHTML = '<i class="fas fa-check-circle mr-1"></i>Đã lưu!';
+
+          // For guest users
           if (email === "guest@nfc.temp") {
-            showToast("Chế độ xem - không lưu tiến độ. Hiển thị danh sách từ vựng");
+            showToast("Chế độ xem - không lưu tiến độ. Quét thẻ NFC khác để học tiếp!");
             setTimeout(() => {
-              // Navigate to question list showing all words
-              window.questionList.init(window.db.words, 0);
-              showScreen("screen-question-list");
-            }, 800);
+              btn.disabled = false;
+              btn.classList.remove("bg-green-500", "scale-95");
+              btn.classList.add("bg-green-600", "hover:bg-green-500");
+              btn.innerHTML = '<i class="fas fa-check mr-1"></i>Đã thuộc';
+            }, 3000);
             return;
           }
 
@@ -2598,7 +2607,7 @@
             status: "mastered",
             lastReviewed: Date.now(),
           };
-          
+
           // Save to cloud
           window.progressCloud.saveStudentProgress({
             email: window.session.user.email,
@@ -2606,13 +2615,16 @@
             className: window.session.user.className || "",
             progress: window.db.progress[email],
           });
-          
-          showToast("✓ Đã lưu! Hiển thị danh sách từ đã thuộc");
-          
-          // Navigate to question list and filter by mastered words
+
+          showToast("✓ Đã đánh dấu thuộc! Quét thẻ NFC khác để học tiếp");
+
+          // Reset button after 3 seconds
           setTimeout(() => {
-            window.app.viewWordsByStatus("mastered");
-          }, 800);
+            btn.disabled = false;
+            btn.classList.remove("bg-green-500", "scale-95");
+            btn.classList.add("bg-green-600", "hover:bg-green-500");
+            btn.innerHTML = '<i class="fas fa-check mr-1"></i>Đã thuộc';
+          }, 3000);
         },
         toggleShuffle: () => {
           window.session.isShuffle = !window.session.isShuffle;
