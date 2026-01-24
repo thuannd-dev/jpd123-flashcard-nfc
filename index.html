@@ -698,13 +698,13 @@
               <i class="fas fa-list mr-2"></i>Danh sách từ vựng
             </button>
 
-            <!-- Review from current + Quiz buttons -->
+            <!-- Mastered + Quiz buttons -->
             <div class="grid grid-cols-2 gap-2">
               <button
-                onclick="studentStudy.startReviewFromCurrent()"
-                class="bg-slate-800 h-12 rounded-full text-orange-400 font-bold border border-orange-500/30 hover:bg-orange-500/10 text-sm"
+                onclick="studentStudy.markMasteredAndNavigateToList()"
+                class="bg-green-600 h-12 rounded-full text-white font-bold hover:bg-green-500 text-sm"
               >
-                <i class="fas fa-sync-alt mr-1"></i>Ôn từ đây
+                <i class="fas fa-check mr-1"></i>Đã thuộc
               </button>
               <button
                 onclick="studentStudy.startQuiz()"
@@ -2576,6 +2576,43 @@
               window.studentStudy.render();
             }
           }, 300);
+        },
+        markMasteredAndNavigateToList: () => {
+          const w = window.session.studyList[window.session.currentIndex];
+          const email = window.session.user.email;
+
+          // For guest users, just show all words list without saving
+          if (email === "guest@nfc.temp") {
+            showToast("Chế độ xem - không lưu tiến độ. Hiển thị danh sách từ vựng");
+            setTimeout(() => {
+              // Navigate to question list showing all words
+              window.questionList.init(window.db.words, 0);
+              showScreen("screen-question-list");
+            }, 800);
+            return;
+          }
+
+          // Mark as mastered for logged-in users
+          if (!window.db.progress[email]) window.db.progress[email] = {};
+          window.db.progress[email][w.id] = {
+            status: "mastered",
+            lastReviewed: Date.now(),
+          };
+          
+          // Save to cloud
+          window.progressCloud.saveStudentProgress({
+            email: window.session.user.email,
+            name: window.session.user.name,
+            className: window.session.user.className || "",
+            progress: window.db.progress[email],
+          });
+          
+          showToast("✓ Đã lưu! Hiển thị danh sách từ đã thuộc");
+          
+          // Navigate to question list and filter by mastered words
+          setTimeout(() => {
+            window.app.viewWordsByStatus("mastered");
+          }, 800);
         },
         toggleShuffle: () => {
           window.session.isShuffle = !window.session.isShuffle;
