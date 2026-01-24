@@ -22,9 +22,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-    <!-- Load API Keys Configuration -->
-    <script src="config.js"></script>
-
     <script>
       tailwind.config = {
         theme: {
@@ -1125,7 +1122,7 @@
       };
 
       const firebaseConfig = {
-        apiKey: window.ENV?.FIREBASE_API_KEY || "",
+        apiKey: "__FIREBASE_API_KEY__",
         authDomain: "jpd123-flashcard.firebaseapp.com",
         databaseURL:
           "https://jpd123-flashcard-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -1139,9 +1136,9 @@
       }
       const dbRef = firebase.database().ref();
 
-      // 2. API KEY - Loaded from config.js (gitignored)
+      // 2. API KEY - Injected from GitHub Secrets during deployment
       let userApiKey = "";
-      const apiKey = window.ENV?.GEMINI_API_KEY || "";
+      const apiKey = "__GEMINI_API_KEY__";
 
       const TEACHER_DOMAINS = ["@fe.edu.vn", "@fpt.com.vn"];
       const SPECIAL_TEACHERS = [

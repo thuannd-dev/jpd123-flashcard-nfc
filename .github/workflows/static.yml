@@ -31,13 +31,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Inject secrets into HTML
+        run: |
+          # Create build directory
+          mkdir -p build
+
+          # Copy index.html and inject secrets
+          sed -e "s/__FIREBASE_API_KEY__/${{ secrets.FIREBASE_API_KEY }}/g" \
+              -e "s/__GEMINI_API_KEY__/${{ secrets.GEMINI_API_KEY }}/g" \
+              index.html > build/index.html
+
+          echo "✅ Secrets injected successfully"
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: "."
+          path: "./build"
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
