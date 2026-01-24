@@ -2682,7 +2682,7 @@
           window.session.quizOptions = options;
 
           // Render quiz
-          $("quiz-furigana").innerText = currentWord.furigana || "";
+          $("quiz-furigana").innerText = ""; // Hidden in quiz mode
           $("quiz-question").innerText = currentWord.kanji;
 
           options.forEach((word, index) => {
@@ -2728,7 +2728,7 @@
           $("quiz-progress").innerText = progress;
 
           // Render question
-          $("quiz-furigana").innerText = currentWord.furigana || "";
+          $("quiz-furigana").innerText = ""; // Hidden in quiz mode
           $("quiz-question").innerText = q.question;
 
           // Render options
