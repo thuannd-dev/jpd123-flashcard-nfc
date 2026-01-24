@@ -2591,7 +2591,9 @@
 
           // For guest users
           if (email === "guest@nfc.temp") {
-            showToast("Chế độ xem - không lưu tiến độ. Quét thẻ NFC khác để học tiếp!");
+            showToast(
+              "Chế độ xem - không lưu tiến độ. Quét thẻ NFC khác để học tiếp!",
+            );
             setTimeout(() => {
               btn.disabled = false;
               btn.classList.remove("bg-green-500", "scale-95");
