@@ -1371,10 +1371,10 @@
           const key = window.geminiService.getKey();
           if (!key) throw new Error("Chưa có Key");
 
+          // Chỉ dùng models có sẵn trong free tier
           const models = [
-            "gemini-2.5-flash",
-            "gemini-2.5-pro",
-            "gemini-flash-latest",
+            "gemini-1.5-flash",  // Model ổn định nhất cho free tier
+            "gemini-1.5-pro",    // Fallback nếu flash bị rate limit
           ];
 
           for (const model of models) {
@@ -1410,6 +1410,14 @@
                 continue;
               }
 
+              // Xử lý rate limit (429)
+              if (data.error && data.error.code === 429) {
+                console.warn(
+                  `⏱️ Model ${model} bị rate limit, thử model khác...`,
+                );
+                continue;
+              }
+
               // Nếu là lỗi authentication hoặc permission, throw ngay
               if (
                 data.error &&
@@ -1427,7 +1435,7 @@
             }
           }
           throw new Error(
-            "Tất cả Model đều lỗi! Kiểm tra Console để xem chi tiết lỗi.",
+            "Tất cả Model đều lỗi hoặc vượt quota! Vui lòng đợi 1 phút rồi thử lại.",
           );
         },
 
