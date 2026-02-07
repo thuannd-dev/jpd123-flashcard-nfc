@@ -1151,7 +1151,7 @@
         "thuthasa180107@fpt.edu.vn",
         "a@fpt.edu.vn",
       ];
-      const STUDENT_DOMAIN = "@fpt.edu.vn";
+      // const STUDENT_DOMAIN = "@fpt.edu.vn"; // Không còn sử dụng - mọi email đều được chấp nhận
       const LESSONS = [4, 5, 6, 7];
 
       window.SEED_DATA = [];
@@ -1634,17 +1634,19 @@
             $("login-spinner").classList.remove("hidden");
             setTimeout(() => {
               const eVal = $("login-email").value.toLowerCase();
+              
+              // Kiểm tra email có hợp lệ không (phải có @)
+              if (!eVal.includes('@')) {
+                $("login-spinner").classList.add("hidden");
+                return alert("Email không hợp lệ!");
+              }
+              
+              // Xác định vai trò: teacher hoặc student
               const role =
                 SPECIAL_TEACHERS.includes(eVal) ||
                 TEACHER_DOMAINS.some((d) => eVal.endsWith(d))
                   ? "teacher"
-                  : eVal.endsWith(STUDENT_DOMAIN)
-                    ? "student"
-                    : null;
-              if (!role) {
-                $("login-spinner").classList.add("hidden");
-                return alert("Email không hợp lệ!");
-              }
+                  : "student"; // Mọi email khác đều là học sinh
               window.session.user = {
                 name: $("login-name").value,
                 email: eVal,
